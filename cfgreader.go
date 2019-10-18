@@ -12,7 +12,7 @@ type Config struct {
 		User     string
 		Password string
 		Host     string
-		Port     int
+		Port     int64
 		Group    string
 		Users    string
 	}
@@ -20,6 +20,7 @@ type Config struct {
 		Url      string
 		User     string
 		Password string
+		Checkssl bool
 	}
 }
 
