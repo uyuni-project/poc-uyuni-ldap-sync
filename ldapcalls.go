@@ -67,15 +67,12 @@ func (lc *LDAPCaller) Connect() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("Bound successfully.")
 }
 
 func (lc *LDAPCaller) Disconnect() {
 	if lc.conn != nil {
 		lc.conn.Close()
 		lc.conn = nil
-		fmt.Println("Closed")
 	}
 }
 
