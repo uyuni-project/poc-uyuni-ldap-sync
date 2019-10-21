@@ -34,10 +34,12 @@ func NewLDAPSync(cfgpath string) *LDAPSync {
 	return sync
 }
 
-func (sync *LDAPSync) Start() {
+func (sync *LDAPSync) Start() *LDAPSync {
 	sync.lc.Connect()
 	sync.refreshExistingLDAPUsers()
 	sync.refreshExistingUyuniUsers()
+
+	return sync
 }
 
 func (sync *LDAPSync) Finish() {
