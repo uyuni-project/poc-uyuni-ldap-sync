@@ -7,18 +7,43 @@ import (
 	"os"
 )
 
+type SyncApp struct {
+	ldapSync   *LDAPSync
+	cliContext *cli.Context
+}
+
+func NewSyncApp(ctx *cli.Context) *SyncApp {
+	sa := new(SyncApp)
+	sa.cliContext = ctx
+
+	return sa
+}
+
+func (sa *SyncApp) GetLDAPSync() *LDAPSync {
+	if sa.ldapSync == nil {
+		sa.ldapSync = NewLDAPSync(sa.cliContext.String("config")).Start()
+	}
+	return sa.ldapSync
+}
+
+func (sa *SyncApp) Finish() {
+	if sa.ldapSync != nil {
+		sa.ldapSync.Finish()
+	}
+}
+
 // RunSync is a main sync runner
 func RunSync(ctx *cli.Context) {
-	lc := NewLDAPSync(ctx.String("config")).Start()
+	lc := NewSyncApp(ctx)
 	if ctx.Bool("show") || ctx.Bool("failed") {
 		var users []UyuniUser
 		var msg string
 		if ctx.Bool("show") {
 			msg = "Users in your LDAP that matches your criteria and should be synchronised:"
-			users = lc.GetUsersToSync()
+			users = lc.GetLDAPSync().GetUsersToSync()
 		} else {
 			msg = "Users in your LDAP that will not be synchronised due to missing data or duplicates:"
-			users = lc.GetFailedUsers()
+			users = lc.GetLDAPSync().GetFailedUsers()
 		}
 
 		if len(users) > 0 {
@@ -33,6 +58,7 @@ func RunSync(ctx *cli.Context) {
 		}
 	} else if ctx.Bool("sync") {
 		fmt.Println("Synchronising...")
+		lc.GetLDAPSync().SyncUsers()
 	} else {
 		cli.ShowAppHelpAndExit(ctx, 1)
 	}
