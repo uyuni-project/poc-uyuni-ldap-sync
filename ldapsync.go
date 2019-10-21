@@ -47,7 +47,7 @@ func (sync *LDAPSync) Finish() {
 // Helper function that looks for the same user or at least its ID
 func (sync LDAPSync) in(user UyuniUser, users []UyuniUser) bool {
 	for _, u := range users {
-		if u.id == user.id {
+		if u.uid == user.uid {
 			return true
 		}
 	}
@@ -94,9 +94,9 @@ func (sync LDAPSync) getAttributes(entry *ldap.Entry, attr ...string) string {
 func (sync *LDAPSync) refreshExistingUyuniUsers() []UyuniUser {
 	for _, usrdata := range sync.uc.Call("user.listUsers", sync.uc.Session()).([]interface{}) {
 		user := NewUyuniUser()
-		user.id = usrdata.(map[string]interface{})["login"].(string)
+		user.uid = usrdata.(map[string]interface{})["login"].(string)
 
-		userDetails := sync.uc.Call("user.getDetails", sync.uc.Session(), user.id).(map[string]interface{})
+		userDetails := sync.uc.Call("user.getDetails", sync.uc.Session(), user.uid).(map[string]interface{})
 
 		user.email = userDetails["email"].(string)
 		user.name = userDetails["first_name"].(string)
@@ -114,7 +114,7 @@ func (sync *LDAPSync) refreshExistingLDAPUsers() []UyuniUser {
 
 	for _, entry := range sync.lc.Search(request).Entries {
 		user := NewUyuniUser()
-		user.id = entry.GetAttributeValue("uid")
+		user.uid = entry.GetAttributeValue("uid")
 		user.email = entry.GetAttributeValue("mail")
 
 		cn := strings.Split(entry.GetAttributeValue("cn"), " ")
@@ -125,7 +125,7 @@ func (sync *LDAPSync) refreshExistingLDAPUsers() []UyuniUser {
 			user.secondname = entry.GetAttributeValue("sn")
 		}
 
-		if user.id != "" {
+		if user.uid != "" {
 			sync.ldapusers = append(sync.ldapusers, *user)
 		}
 	}
