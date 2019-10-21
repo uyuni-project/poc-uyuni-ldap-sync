@@ -40,8 +40,14 @@ func (c *UyuniCaller) SetPassword(password string) *UyuniCaller {
 
 // Obtain an authentication token
 func (c *UyuniCaller) authenticate() {
+	var err error
+	var res interface{}
 	if c.user != "" && c.password != "" {
-		c.session = c.Call("auth.login", c.user, c.password).(string)
+		res, err = c.Call("auth.login", c.user, c.password)
+		if err != nil {
+			log.Fatal(err)
+		}
+		c.session = res.(string)
 	} else {
 		log.Fatalf("User and/or password for Uyuni required!")
 	}
@@ -56,12 +62,8 @@ func (c *UyuniCaller) Session() string {
 }
 
 // Call any XML-RPC function
-func (c *UyuniCaller) Call(name string, args ...interface{}) interface{} {
+func (c *UyuniCaller) Call(name string, args ...interface{}) (interface{}, error) {
 	var res interface{}
 	err := c.client.Call(name, args, &res)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return res
+	return res, err
 }

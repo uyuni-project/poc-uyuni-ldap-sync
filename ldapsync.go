@@ -94,11 +94,19 @@ func (sync LDAPSync) getAttributes(entry *ldap.Entry, attr ...string) string {
 
 // Get all existing users in Uyuni.
 func (sync *LDAPSync) refreshExistingUyuniUsers() []UyuniUser {
-	for _, usrdata := range sync.uc.Call("user.listUsers", sync.uc.Session()).([]interface{}) {
+	res, err := sync.uc.Call("user.listUsers", sync.uc.Session())
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, usrdata := range res.([]interface{}) {
 		user := NewUyuniUser()
 		user.uid = usrdata.(map[string]interface{})["login"].(string)
 
-		userDetails := sync.uc.Call("user.getDetails", sync.uc.Session(), user.uid).(map[string]interface{})
+		res, err = sync.uc.Call("user.getDetails", sync.uc.Session(), user.uid)
+		if err != nil {
+			log.Fatal(err)
+		}
+		userDetails := res.(map[string]interface{})
 
 		user.email = userDetails["email"].(string)
 		user.name = userDetails["first_name"].(string)
