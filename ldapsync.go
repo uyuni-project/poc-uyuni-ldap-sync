@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-ldap/ldap"
 	"log"
 	"strings"
@@ -85,7 +86,8 @@ func (sync *LDAPSync) SyncUsers() []UyuniUser {
 	failed := make([]UyuniUser, 0)
 	for _, user := range sync.GetUsersToSync() {
 		// The 1 is PAM authentication usage
-		_, user.err = sync.uc.Call("user.create", sync.uc.Session(), user.uid, "", user.name, user.secondname, "", 1)
+		fmt.Println("Synchronising user", user.uid)
+		_, user.err = sync.uc.Call("user.create", sync.uc.Session(), user.uid, "", user.name, user.secondname, user.email, 1)
 		if !user.IsValid() {
 			failed = append(failed, user)
 		}
