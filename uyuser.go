@@ -5,6 +5,7 @@ type UyuniUser struct {
 	name       string
 	secondname string
 	email      string
+	err        error
 }
 
 func NewUyuniUser() *UyuniUser {
@@ -13,5 +14,5 @@ func NewUyuniUser() *UyuniUser {
 
 // IsValid validates if the user data is compliant to the synchronised
 func (u *UyuniUser) IsValid() bool {
-	return u.uid != "" && u.email != "" && u.name != "" && u.secondname != ""
+	return u.uid != "" && u.email != "" && u.name != "" && u.secondname != "" && u.err == nil
 }
