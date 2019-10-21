@@ -13,6 +13,7 @@ type UyuniUser struct {
 	roles      []string
 }
 
+// Constructor
 func NewUyuniUser() *UyuniUser {
 	uu := new(UyuniUser)
 	uu.roles = make([]string, 0)
@@ -20,6 +21,7 @@ func NewUyuniUser() *UyuniUser {
 	return uu
 }
 
+// AddRole allows add distinct roles to the user
 func (u *UyuniUser) AddRole(role string) {
 	role = strings.ToLower(role)
 	for _, userRole := range u.roles {
@@ -29,6 +31,11 @@ func (u *UyuniUser) AddRole(role string) {
 	}
 
 	u.roles = append(u.roles, role)
+}
+
+// GetRoles returns all roles, assigned to the user
+func (u *UyuniUser) GetRoles() []string {
+	return u.roles
 }
 
 // IsValid validates if the user data is compliant to the synchronised
