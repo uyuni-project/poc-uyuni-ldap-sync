@@ -73,6 +73,7 @@ func main() {
 	app.Name = "LDAP Sync"
 	app.Usage = "Synchronise users between Uyuni/SUSE Manager and LDAP of your choice"
 	app.Action = RunSync
+	app.Version = "0.1"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "config, c",
