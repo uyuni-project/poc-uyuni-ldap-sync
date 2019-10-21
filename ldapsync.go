@@ -44,10 +44,24 @@ func (sync *LDAPSync) Finish() {
 	sync.lc.Disconnect()
 }
 
+// Helper function that looks for the same user or at least its ID
+func (sync LDAPSync) in(user UyuniUser, users []UyuniUser) bool {
+	for _, u := range users {
+		if u.id == user.id {
+			return true
+		}
+	}
+	return false
+}
+
 // GetUsersToSync will return a list of users that still needs to be added to the Uyuni.
 func (sync *LDAPSync) GetUsersToSync() []UyuniUser {
 	users := make([]UyuniUser, 0)
-
+	for _, user := range sync.ldapusers {
+		if !sync.in(user, sync.uyuniusers) && user.IsValid() {
+			users = append(users, user)
+		}
+	}
 	return users
 }
 
@@ -55,6 +69,11 @@ func (sync *LDAPSync) GetUsersToSync() []UyuniUser {
 // and belong to the given group, but cannot be added due to missing data.
 func (sync *LDAPSync) GetFailedUsers() []UyuniUser {
 	users := make([]UyuniUser, 0)
+	for _, user := range sync.ldapusers {
+		if sync.in(user, sync.uyuniusers) || !user.IsValid() {
+			users = append(users, user)
+		}
+	}
 
 	return users
 }
@@ -106,7 +125,9 @@ func (sync *LDAPSync) refreshExistingLDAPUsers() []UyuniUser {
 			user.secondname = entry.GetAttributeValue("sn")
 		}
 
-		sync.ldapusers = append(sync.ldapusers, *user)
+		if user.id != "" {
+			sync.ldapusers = append(sync.ldapusers, *user)
+		}
 	}
 
 	return sync.ldapusers
