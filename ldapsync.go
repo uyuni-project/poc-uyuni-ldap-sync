@@ -51,7 +51,7 @@ func (sync *LDAPSync) Finish() {
 // Helper function that looks for the same user or at least its ID
 func (sync LDAPSync) in(user UyuniUser, users []UyuniUser) bool {
 	for _, u := range users {
-		if u.uid == user.uid {
+		if u.Uid == user.Uid {
 			return true
 		}
 	}
@@ -86,8 +86,8 @@ func (sync *LDAPSync) SyncUsers() []UyuniUser {
 	failed := make([]UyuniUser, 0)
 	for _, user := range sync.GetUsersToSync() {
 		// The 1 is PAM authentication usage
-		fmt.Println("Synchronising user", user.uid)
-		_, user.err = sync.uc.Call("user.create", sync.uc.Session(), user.uid, "", user.name, user.secondname, user.email, 1)
+		fmt.Println("Synchronising user", user.Uid)
+		_, user.Err = sync.uc.Call("user.create", sync.uc.Session(), user.Uid, "", user.Name, user.Secondname, user.Email, 1)
 		if !user.IsValid() {
 			failed = append(failed, user)
 		}
@@ -115,17 +115,17 @@ func (sync *LDAPSync) refreshExistingUyuniUsers() []UyuniUser {
 	}
 	for _, usrdata := range res.([]interface{}) {
 		user := NewUyuniUser()
-		user.uid = usrdata.(map[string]interface{})["login"].(string)
+		user.Uid = usrdata.(map[string]interface{})["login"].(string)
 
-		res, err = sync.uc.Call("user.getDetails", sync.uc.Session(), user.uid)
+		res, err = sync.uc.Call("user.getDetails", sync.uc.Session(), user.Uid)
 		if err != nil {
 			log.Fatal(err)
 		}
 		userDetails := res.(map[string]interface{})
 
-		user.email = userDetails["email"].(string)
-		user.name = userDetails["first_name"].(string)
-		user.secondname = userDetails["last_name"].(string)
+		user.Email = userDetails["email"].(string)
+		user.Name = userDetails["first_name"].(string)
+		user.Secondname = userDetails["last_name"].(string)
 
 		sync.uyuniusers = append(sync.uyuniusers, *user)
 	}
@@ -139,18 +139,18 @@ func (sync *LDAPSync) refreshExistingLDAPUsers() []UyuniUser {
 
 	for _, entry := range sync.lc.Search(request).Entries {
 		user := NewUyuniUser()
-		user.uid = entry.GetAttributeValue("uid")
-		user.email = entry.GetAttributeValue("mail")
+		user.Uid = entry.GetAttributeValue("uid")
+		user.Email = entry.GetAttributeValue("mail")
 
 		cn := strings.Split(entry.GetAttributeValue("cn"), " ")
 		if len(cn) == 2 {
-			user.name, user.secondname = cn[0], cn[1]
+			user.Name, user.Secondname = cn[0], cn[1]
 		} else {
-			user.name = sync.getAttributes(entry, "name", "givenName")
-			user.secondname = entry.GetAttributeValue("sn")
+			user.Name = sync.getAttributes(entry, "name", "givenName")
+			user.Secondname = entry.GetAttributeValue("sn")
 		}
 
-		if user.uid != "" {
+		if user.Uid != "" {
 			sync.ldapusers = append(sync.ldapusers, *user)
 		}
 	}

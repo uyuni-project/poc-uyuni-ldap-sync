@@ -1,11 +1,11 @@
 package main
 
 type UyuniUser struct {
-	uid        string
-	name       string
-	secondname string
-	email      string
-	err        error
+	Uid        string
+	Name       string
+	Secondname string
+	Email      string
+	Err        error
 }
 
 func NewUyuniUser() *UyuniUser {
@@ -14,5 +14,5 @@ func NewUyuniUser() *UyuniUser {
 
 // IsValid validates if the user data is compliant to the synchronised
 func (u *UyuniUser) IsValid() bool {
-	return u.uid != "" && u.email != "" && u.name != "" && u.secondname != "" && u.err == nil
+	return u.Uid != "" && u.Email != "" && u.Name != "" && u.Secondname != "" && u.Err == nil
 }

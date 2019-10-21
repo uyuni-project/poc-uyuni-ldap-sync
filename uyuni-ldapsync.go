@@ -50,7 +50,7 @@ func RunSync(ctx *cli.Context) {
 			fmt.Println(msg)
 			for idx, user := range users {
 				idx++
-				fmt.Printf("  %d. %s (%s %s) at %s\n", idx, user.uid, user.name, user.secondname, user.email)
+				fmt.Printf("  %d. %s (%s %s) at %s\n", idx, user.Uid, user.Name, user.Secondname, user.Email)
 			}
 			fmt.Println()
 		} else {
@@ -59,7 +59,7 @@ func RunSync(ctx *cli.Context) {
 	} else if ctx.Bool("sync") {
 		fmt.Println("Synchronising...")
 		for _, user := range lc.GetLDAPSync().SyncUsers() {
-			fmt.Printf("Usersync for \"%s\" has been failed: %s\n", user.uid, user.err.Error())
+			fmt.Printf("Usersync for \"%s\" has been failed: %s\n", user.Uid, user.Err.Error())
 		}
 	} else {
 		cli.ShowAppHelpAndExit(ctx, 1)
