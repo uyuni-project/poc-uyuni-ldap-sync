@@ -156,33 +156,49 @@ func (sync *LDAPSync) refreshExistingLDAPUsers() []*UyuniUser {
 		}
 	}
 
+	for _, user := range sync.ldapusers {
+		sync.updateLDAPUserRoles(user)
+	}
+
 	return sync.ldapusers
+}
+
+func (sync *LDAPSync) mergeRolesByAttributes(dn string, user *UyuniUser, filter string, attribute string, uyuniRoles []string) {
+	req := ldap.NewSearchRequest(dn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, filter, []string{}, nil)
+	for _, entry := range sync.lc.Search(req).Entries {
+		for _, roleDn := range entry.GetAttributeValues(attribute) {
+			if roleDn == user.Dn {
+				user.AddRoles(uyuniRoles...)
+			}
+		}
+	}
 }
 
 // Get LDAP organizationalRole based on configuration
 func (sync *LDAPSync) updateLDAPUserRoles(user *UyuniUser) {
-	for _, roleConfig := range sync.cr.Config().Directory.Roles {
-		for dn, roles := range roleConfig {
-			r := ldap.NewSearchRequest(dn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, "(objectClass=organizationalRole)", []string{}, nil)
-			for _, entry := range sync.lc.Search(r).Entries {
-				for _, roleDn := range entry.GetAttributeValues("roleOccupant") {
-					if roleDn == user.Dn {
-						for _, role := range roles {
-							user.AddRole(role)
-						}
-					}
-				}
+	type SearchConfig struct {
+		config    *[]map[string][]string
+		filter    string
+		attribute string
+	}
+
+	roleConfigs := [...]SearchConfig{
+		SearchConfig{config: &sync.cr.Config().Directory.Roles,
+			filter: "(objectClass=organizationalRole)", attribute: "roleOccupant"},
+		SearchConfig{config: &sync.cr.Config().Directory.Groups,
+			filter: "(|(objectClass=groupOfNames)(objectClass=group))", attribute: "member"},
+	}
+
+	for _, searchConfig := range roleConfigs {
+		for _, roleConfig := range *searchConfig.config {
+			for dn, uyuniRoles := range roleConfig {
+				sync.mergeRolesByAttributes(dn, user, searchConfig.filter, searchConfig.attribute, uyuniRoles)
 			}
 		}
 	}
 }
 
 func (sync *LDAPSync) TestBed() {
-	fmt.Println("Updating users...")
-	for _, user := range sync.ldapusers {
-		sync.updateLDAPUserRoles(user)
-	}
-
 	fmt.Println("Checking updated users:")
 	for _, user := range sync.ldapusers {
 		if len(user.GetRoles()) > 0 {
