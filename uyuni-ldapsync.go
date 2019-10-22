@@ -36,7 +36,7 @@ func (sa *SyncApp) Finish() {
 func RunSync(ctx *cli.Context) {
 	lc := NewSyncApp(ctx)
 	if ctx.Bool("show") || ctx.Bool("failed") {
-		var users []UyuniUser
+		var users []*UyuniUser
 		var msg string
 		if ctx.Bool("show") {
 			msg = "Users in your LDAP that matches your criteria and should be synchronised:"

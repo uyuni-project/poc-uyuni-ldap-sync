@@ -11,8 +11,8 @@ type LDAPSync struct {
 	lc         *LDAPCaller
 	uc         *UyuniCaller
 	cr         *ConfigReader
-	ldapusers  []UyuniUser
-	uyuniusers []UyuniUser
+	ldapusers  []*UyuniUser
+	uyuniusers []*UyuniUser
 }
 
 func NewLDAPSync(cfgpath string) *LDAPSync {
@@ -30,8 +30,8 @@ func NewLDAPSync(cfgpath string) *LDAPSync {
 	sync.uc = NewUyuniCaller(sync.cr.Config().Spacewalk.Url, !sync.cr.Config().Spacewalk.Checkssl).
 		SetUser(sync.cr.Config().Spacewalk.User).
 		SetPassword(sync.cr.Config().Spacewalk.Password)
-	sync.ldapusers = make([]UyuniUser, 0)
-	sync.uyuniusers = make([]UyuniUser, 0)
+	sync.ldapusers = make([]*UyuniUser, 0)
+	sync.uyuniusers = make([]*UyuniUser, 0)
 
 	return sync
 }
@@ -49,7 +49,7 @@ func (sync *LDAPSync) Finish() {
 }
 
 // Helper function that looks for the same user or at least its ID
-func (sync LDAPSync) in(user UyuniUser, users []UyuniUser) bool {
+func (sync LDAPSync) in(user UyuniUser, users []*UyuniUser) bool {
 	for _, u := range users {
 		if u.Uid == user.Uid {
 			return true
@@ -59,10 +59,10 @@ func (sync LDAPSync) in(user UyuniUser, users []UyuniUser) bool {
 }
 
 // GetUsersToSync will return a list of users that still needs to be added to the Uyuni.
-func (sync *LDAPSync) GetUsersToSync() []UyuniUser {
-	users := make([]UyuniUser, 0)
+func (sync *LDAPSync) GetUsersToSync() []*UyuniUser {
+	users := make([]*UyuniUser, 0)
 	for _, user := range sync.ldapusers {
-		if !sync.in(user, sync.uyuniusers) && user.IsValid() {
+		if !sync.in(*user, sync.uyuniusers) && user.IsValid() {
 			users = append(users, user)
 		}
 	}
@@ -71,10 +71,10 @@ func (sync *LDAPSync) GetUsersToSync() []UyuniUser {
 
 // GetFailedUsers returns a list of users that matches the search criteria
 // and belong to the given group, but cannot be added due to missing data.
-func (sync *LDAPSync) GetFailedUsers() []UyuniUser {
-	users := make([]UyuniUser, 0)
+func (sync *LDAPSync) GetFailedUsers() []*UyuniUser {
+	users := make([]*UyuniUser, 0)
 	for _, user := range sync.ldapusers {
-		if sync.in(user, sync.uyuniusers) || !user.IsValid() {
+		if sync.in(*user, sync.uyuniusers) || !user.IsValid() {
 			users = append(users, user)
 		}
 	}
@@ -82,8 +82,8 @@ func (sync *LDAPSync) GetFailedUsers() []UyuniUser {
 	return users
 }
 
-func (sync *LDAPSync) SyncUsers() []UyuniUser {
-	failed := make([]UyuniUser, 0)
+func (sync *LDAPSync) SyncUsers() []*UyuniUser {
+	failed := make([]*UyuniUser, 0)
 	for _, user := range sync.GetUsersToSync() {
 		// The 1 is PAM authentication usage
 		fmt.Println("Synchronising user", user.Uid)
@@ -108,7 +108,7 @@ func (sync LDAPSync) getAttributes(entry *ldap.Entry, attr ...string) string {
 }
 
 // Get all existing users in Uyuni.
-func (sync *LDAPSync) refreshExistingUyuniUsers() []UyuniUser {
+func (sync *LDAPSync) refreshExistingUyuniUsers() []*UyuniUser {
 	res, err := sync.uc.Call("user.listUsers", sync.uc.Session())
 	if err != nil {
 		log.Fatal(err)
@@ -127,18 +127,19 @@ func (sync *LDAPSync) refreshExistingUyuniUsers() []UyuniUser {
 		user.Name = userDetails["first_name"].(string)
 		user.Secondname = userDetails["last_name"].(string)
 
-		sync.uyuniusers = append(sync.uyuniusers, *user)
+		sync.uyuniusers = append(sync.uyuniusers, user)
 	}
 	return sync.uyuniusers
 }
 
 // Get existing LDAP users, including those that are in Uyuni registry
-func (sync *LDAPSync) refreshExistingLDAPUsers() []UyuniUser {
+func (sync *LDAPSync) refreshExistingLDAPUsers() []*UyuniUser {
 	request := ldap.NewSearchRequest(sync.lc.usersdn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		"(objectClass=*)", []string{}, nil)
 
 	for _, entry := range sync.lc.Search(request).Entries {
 		user := NewUyuniUser()
+		user.Dn = entry.DN
 		user.Uid = entry.GetAttributeValue("uid")
 		user.Email = entry.GetAttributeValue("mail")
 
@@ -151,9 +152,45 @@ func (sync *LDAPSync) refreshExistingLDAPUsers() []UyuniUser {
 		}
 
 		if user.Uid != "" {
-			sync.ldapusers = append(sync.ldapusers, *user)
+			sync.ldapusers = append(sync.ldapusers, user)
 		}
 	}
 
 	return sync.ldapusers
+}
+
+// Get LDAP organizationalRole based on configuration
+func (sync *LDAPSync) updateLDAPUserRoles(user *UyuniUser) {
+	for _, roleConfig := range sync.cr.Config().Directory.Roles {
+		for dn, roles := range roleConfig {
+			fmt.Println(dn, "==>", roles)
+			r := ldap.NewSearchRequest(dn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, "(objectClass=organizationalRole)", []string{}, nil)
+			for _, entry := range sync.lc.Search(r).Entries {
+				roleDn := entry.GetAttributeValue("roleOccupant")
+				if roleDn == user.Dn {
+					for _, role := range roles {
+						fmt.Println("Adding role", role)
+						user.AddRole(role)
+					}
+				}
+			}
+		}
+	}
+}
+
+func (sync *LDAPSync) TestBed() {
+	fmt.Println("Updating users...")
+	for _, user := range sync.ldapusers {
+		sync.updateLDAPUserRoles(user)
+	}
+
+	fmt.Println("Checking updated users:")
+	for _, user := range sync.ldapusers {
+		if len(user.GetRoles()) > 0 {
+			fmt.Println("User", user.Name, user.Secondname, "has roles:")
+			for _, role := range user.GetRoles() {
+				fmt.Println("  -", role)
+			}
+		}
+	}
 }
