@@ -5,6 +5,7 @@ import (
 )
 
 type UyuniUser struct {
+	Dn         string
 	Uid        string
 	Name       string
 	Secondname string

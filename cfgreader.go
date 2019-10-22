@@ -13,8 +13,13 @@ type Config struct {
 		Password string
 		Host     string
 		Port     int64
-		Group    string
-		Users    string
+
+		Groups []map[string][]string
+		Roles  []map[string][]string
+
+		// Obsolete
+		Group string
+		Users string
 	}
 	Spacewalk struct {
 		Url      string
@@ -25,7 +30,11 @@ type Config struct {
 }
 
 func NewConfig() *Config {
-	return new(Config)
+	cfg := new(Config)
+	cfg.Directory.Groups = make([]map[string][]string, 0)
+	cfg.Directory.Roles = make([]map[string][]string, 0)
+
+	return cfg
 }
 
 type ConfigReader struct {
