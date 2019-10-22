@@ -36,7 +36,7 @@ func (sa *SyncApp) Finish() {
 func RunSync(ctx *cli.Context) {
 	lc := NewSyncApp(ctx)
 	if ctx.Bool("show") || ctx.Bool("failed") {
-		var users []UyuniUser
+		var users []*UyuniUser
 		var msg string
 		if ctx.Bool("show") {
 			msg = "Users in your LDAP that matches your criteria and should be synchronised:"
@@ -50,7 +50,7 @@ func RunSync(ctx *cli.Context) {
 			fmt.Println(msg)
 			for idx, user := range users {
 				idx++
-				fmt.Printf("  %d. %s (%s %s) at %s\n", idx, user.uid, user.name, user.secondname, user.email)
+				fmt.Printf("  %d. %s (%s %s) at %s\n", idx, user.Uid, user.Name, user.Secondname, user.Email)
 			}
 			fmt.Println()
 		} else {
@@ -59,7 +59,10 @@ func RunSync(ctx *cli.Context) {
 	} else if ctx.Bool("sync") {
 		fmt.Println("Synchronising...")
 		for _, user := range lc.GetLDAPSync().SyncUsers() {
-			fmt.Printf("Usersync for \"%s\" has been failed: %s\n", user.uid, user.err.Error())
+			fmt.Printf("Adding new user as \"%s\" has been failed: %s\n", user.Uid, user.Err.Error())
+		}
+		for _, user := range lc.GetLDAPSync().SyncUserRoles() {
+			fmt.Printf("Updating roles for \"%s\" has been failed: %s\n", user.Uid, user.Err.Error())
 		}
 	} else {
 		cli.ShowAppHelpAndExit(ctx, 1)
