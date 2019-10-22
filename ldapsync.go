@@ -163,14 +163,13 @@ func (sync *LDAPSync) refreshExistingLDAPUsers() []*UyuniUser {
 func (sync *LDAPSync) updateLDAPUserRoles(user *UyuniUser) {
 	for _, roleConfig := range sync.cr.Config().Directory.Roles {
 		for dn, roles := range roleConfig {
-			fmt.Println(dn, "==>", roles)
 			r := ldap.NewSearchRequest(dn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, "(objectClass=organizationalRole)", []string{}, nil)
 			for _, entry := range sync.lc.Search(r).Entries {
-				roleDn := entry.GetAttributeValue("roleOccupant")
-				if roleDn == user.Dn {
-					for _, role := range roles {
-						fmt.Println("Adding role", role)
-						user.AddRole(role)
+				for _, roleDn := range entry.GetAttributeValues("roleOccupant") {
+					if roleDn == user.Dn {
+						for _, role := range roles {
+							user.AddRole(role)
+						}
 					}
 				}
 			}
