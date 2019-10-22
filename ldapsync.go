@@ -82,6 +82,7 @@ func (sync *LDAPSync) GetFailedUsers() []*UyuniUser {
 	return users
 }
 
+// SyncUsers is creating new users in Uyuni by their names and emails.
 func (sync *LDAPSync) SyncUsers() []*UyuniUser {
 	failed := make([]*UyuniUser, 0)
 	for _, user := range sync.GetUsersToSync() {
@@ -89,6 +90,38 @@ func (sync *LDAPSync) SyncUsers() []*UyuniUser {
 		fmt.Println("Synchronising user", user.Uid)
 		_, user.Err = sync.uc.Call("user.create", sync.uc.Session(), user.Uid, "", user.Name, user.Secondname, user.Email, 1)
 		if !user.IsValid() {
+			failed = append(failed, user)
+		}
+	}
+	return failed
+}
+
+// SyncUserRoles synchronises roles of each user.
+func (sync *LDAPSync) SyncUserRoles() []*UyuniUser {
+	uyuniStaticRoles := [...]string{"satellite_admin", "org_admin", "channel_admin", "config_admin", "system_group_admin", "activation_key_admin"}
+	failed := make([]*UyuniUser, 0)
+	var hasFailures bool
+	// Cleanup all roles
+	for _, user := range sync.GetUsersToSync() { // XXX: Here must be actually the same users as in LDAP, because this will only clean each user roles and update from LDAP.
+		hasFailures = false
+		fmt.Println("Synchronising roles for user", user.Uid)
+		for _, role := range uyuniStaticRoles {
+			_, err := sync.uc.Call("user.removeRole", sync.uc.Session(), user.Uid, role)
+			if err != nil {
+				fmt.Println("Failed to remove existing role", role, "due to", err.Error())
+				hasFailures = true
+			}
+		}
+
+		for _, newRole := range user.GetRoles() {
+			_, err := sync.uc.Call("user.addRole", sync.uc.Session(), user.Uid, newRole)
+			if err != nil {
+				fmt.Println("Failed to set a new role", newRole, "due to", err.Error())
+				hasFailures = true
+			}
+		}
+
+		if hasFailures {
 			failed = append(failed, user)
 		}
 	}
@@ -199,13 +232,4 @@ func (sync *LDAPSync) updateLDAPUserRoles(user *UyuniUser) {
 }
 
 func (sync *LDAPSync) TestBed() {
-	fmt.Println("Checking updated users:")
-	for _, user := range sync.ldapusers {
-		if len(user.GetRoles()) > 0 {
-			fmt.Println("User", user.Name, user.Secondname, "has roles:")
-			for _, role := range user.GetRoles() {
-				fmt.Println("  -", role)
-			}
-		}
-	}
 }
