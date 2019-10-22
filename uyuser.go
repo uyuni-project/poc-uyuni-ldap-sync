@@ -23,15 +23,17 @@ func NewUyuniUser() *UyuniUser {
 }
 
 // AddRole allows add distinct roles to the user
-func (u *UyuniUser) AddRole(role string) {
-	role = strings.ToLower(role)
-	for _, userRole := range u.roles {
-		if userRole == role {
-			return
+func (u *UyuniUser) AddRoles(roles ...string) {
+	for _, role := range roles {
+		role = strings.ToLower(role)
+		for _, userRole := range u.roles {
+			if userRole == role {
+				goto Skip
+			}
 		}
+		u.roles = append(u.roles, role)
+	Skip:
 	}
-
-	u.roles = append(u.roles, role)
 }
 
 // GetRoles returns all roles, assigned to the user
