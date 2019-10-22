@@ -230,6 +230,3 @@ func (sync *LDAPSync) updateLDAPUserRoles(user *UyuniUser) {
 		}
 	}
 }
-
-func (sync *LDAPSync) TestBed() {
-}

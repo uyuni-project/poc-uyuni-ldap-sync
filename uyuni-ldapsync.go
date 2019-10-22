@@ -59,7 +59,10 @@ func RunSync(ctx *cli.Context) {
 	} else if ctx.Bool("sync") {
 		fmt.Println("Synchronising...")
 		for _, user := range lc.GetLDAPSync().SyncUsers() {
-			fmt.Printf("Usersync for \"%s\" has been failed: %s\n", user.Uid, user.Err.Error())
+			fmt.Printf("Adding new user as \"%s\" has been failed: %s\n", user.Uid, user.Err.Error())
+		}
+		for _, user := range lc.GetLDAPSync().SyncUserRoles() {
+			fmt.Printf("Updating roles for \"%s\" has been failed: %s\n", user.Uid, user.Err.Error())
 		}
 	} else {
 		cli.ShowAppHelpAndExit(ctx, 1)
