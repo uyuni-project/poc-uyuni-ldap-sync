@@ -14,8 +14,8 @@ type Config struct {
 		Host     string
 		Port     int64
 
-		Groups []map[string][]string
-		Roles  []map[string][]string
+		Groups map[string][]string
+		Roles  map[string][]string
 
 		// Obsolete
 		Group string
@@ -31,8 +31,8 @@ type Config struct {
 
 func NewConfig() *Config {
 	cfg := new(Config)
-	cfg.Directory.Groups = make([]map[string][]string, 0)
-	cfg.Directory.Roles = make([]map[string][]string, 0)
+	cfg.Directory.Groups = make(map[string][]string)
+	cfg.Directory.Roles = make(map[string][]string)
 
 	return cfg
 }

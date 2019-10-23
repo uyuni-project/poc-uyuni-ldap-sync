@@ -7,12 +7,19 @@ import (
 	"strings"
 )
 
+type SearchConfig struct {
+	config    *map[string][]string
+	filter    string
+	attribute string
+}
+
 type LDAPSync struct {
-	lc         *LDAPCaller
-	uc         *UyuniCaller
-	cr         *ConfigReader
-	ldapusers  []*UyuniUser
-	uyuniusers []*UyuniUser
+	lc          *LDAPCaller
+	uc          *UyuniCaller
+	cr          *ConfigReader
+	ldapusers   []*UyuniUser
+	uyuniusers  []*UyuniUser
+	roleConfigs [2]*SearchConfig
 }
 
 func NewLDAPSync(cfgpath string) *LDAPSync {
@@ -24,7 +31,6 @@ func NewLDAPSync(cfgpath string) *LDAPSync {
 		SetPort(sync.cr.Config().Directory.Port).
 		SetUser(sync.cr.Config().Directory.User).
 		SetPassword(sync.cr.Config().Directory.Password).
-		SetGroupsDn(sync.cr.Config().Directory.Group).
 		SetUsersDn(sync.cr.Config().Directory.Users)
 
 	sync.uc = NewUyuniCaller(sync.cr.Config().Spacewalk.Url, !sync.cr.Config().Spacewalk.Checkssl).
@@ -33,6 +39,12 @@ func NewLDAPSync(cfgpath string) *LDAPSync {
 	sync.ldapusers = make([]*UyuniUser, 0)
 	sync.uyuniusers = make([]*UyuniUser, 0)
 
+	sync.roleConfigs = [2]*SearchConfig{
+		&SearchConfig{config: &sync.cr.Config().Directory.Roles,
+			filter: "(objectClass=organizationalRole)", attribute: "roleOccupant"},
+		&SearchConfig{config: &sync.cr.Config().Directory.Groups,
+			filter: "(|(objectClass=groupOfNames)(objectClass=group))", attribute: "member"},
+	}
 	return sync
 }
 
@@ -165,13 +177,26 @@ func (sync *LDAPSync) refreshExistingUyuniUsers() []*UyuniUser {
 	return sync.uyuniusers
 }
 
-// Get existing LDAP users, including those that are in Uyuni registry
-func (sync *LDAPSync) refreshExistingLDAPUsers() []*UyuniUser {
-	request := ldap.NewSearchRequest(sync.lc.usersdn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+func (sync *LDAPSync) getUserByDN(dn string) *UyuniUser {
+	var user *UyuniUser
+	request := ldap.NewSearchRequest(dn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		"(objectClass=*)", []string{}, nil)
 
-	for _, entry := range sync.lc.Search(request).Entries {
-		user := NewUyuniUser()
+	entries := sync.lc.Search(request).Entries
+	var entry *ldap.Entry
+	switch len(entries) {
+	case 1:
+		entry = entries[0]
+	case 0:
+		fmt.Println("No users found on DN", dn)
+		return user
+	default:
+		fmt.Println("More than one user matches DN", dn)
+		return user
+	}
+
+	if entry != nil {
+		user = NewUyuniUser()
 		user.Dn = entry.DN
 		user.Uid = entry.GetAttributeValue("uid")
 		user.Email = entry.GetAttributeValue("mail")
@@ -183,14 +208,34 @@ func (sync *LDAPSync) refreshExistingLDAPUsers() []*UyuniUser {
 			user.Name = sync.getAttributes(entry, "name", "givenName")
 			user.Secondname = entry.GetAttributeValue("sn")
 		}
+	}
 
-		if user.Uid != "" {
-			sync.ldapusers = append(sync.ldapusers, user)
+	return user
+}
+
+// Get existing LDAP users, based on the groups mapping
+func (sync *LDAPSync) refreshExistingLDAPUsers() []*UyuniUser {
+	udns := make(map[string]bool)
+	sync.ldapusers = nil
+
+	// Get all *distinct* user DNs from the "member" attiribute across all the groups
+	for gdn := range sync.cr.Config().Directory.Groups {
+		request := ldap.NewSearchRequest(gdn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+			"(objectClass=*)", []string{}, nil)
+		for _, entry := range sync.lc.Search(request).Entries {
+			for _, udn := range entry.GetAttributeValues("member") {
+				udns[udn] = true
+			}
 		}
 	}
 
-	for _, user := range sync.ldapusers {
-		sync.updateLDAPUserRoles(user)
+	// Collect users data
+	for udn := range udns {
+		user := sync.getUserByDN(udn)
+		if user != nil {
+			sync.updateLDAPUserRoles(user)
+			sync.ldapusers = append(sync.ldapusers, user)
+		}
 	}
 
 	return sync.ldapusers
@@ -209,24 +254,9 @@ func (sync *LDAPSync) mergeRolesByAttributes(dn string, user *UyuniUser, filter 
 
 // Get LDAP organizationalRole based on configuration
 func (sync *LDAPSync) updateLDAPUserRoles(user *UyuniUser) {
-	type SearchConfig struct {
-		config    *[]map[string][]string
-		filter    string
-		attribute string
-	}
-
-	roleConfigs := [...]SearchConfig{
-		SearchConfig{config: &sync.cr.Config().Directory.Roles,
-			filter: "(objectClass=organizationalRole)", attribute: "roleOccupant"},
-		SearchConfig{config: &sync.cr.Config().Directory.Groups,
-			filter: "(|(objectClass=groupOfNames)(objectClass=group))", attribute: "member"},
-	}
-
-	for _, searchConfig := range roleConfigs {
-		for _, roleConfig := range *searchConfig.config {
-			for dn, uyuniRoles := range roleConfig {
-				sync.mergeRolesByAttributes(dn, user, searchConfig.filter, searchConfig.attribute, uyuniRoles)
-			}
+	for _, searchConfig := range sync.roleConfigs {
+		for dn, uyuniRoles := range *searchConfig.config {
+			sync.mergeRolesByAttributes(dn, user, searchConfig.filter, searchConfig.attribute, uyuniRoles)
 		}
 	}
 }
