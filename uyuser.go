@@ -12,12 +12,15 @@ type UyuniUser struct {
 	Email      string
 	Err        error
 	roles      []string
+	new        bool
+	outdated   bool
 }
 
 // Constructor
 func NewUyuniUser() *UyuniUser {
 	uu := new(UyuniUser)
 	uu.roles = make([]string, 0)
+	uu.new, uu.outdated = false, false
 
 	return uu
 }
@@ -41,7 +44,20 @@ func (u *UyuniUser) GetRoles() []string {
 	return u.roles
 }
 
-// IsValid validates if the user data is compliant to the synchronised
+// IsValid validates if the user data is compliant
+// for the synchronisation
 func (u *UyuniUser) IsValid() bool {
 	return u.Uid != "" && u.Email != "" && u.Name != "" && u.Secondname != "" && u.Err == nil
+}
+
+// IsNew returns a flag, indicating if that user
+// is new to Uyuni (i.e. is not yet created)
+func (u *UyuniUser) IsNew() bool {
+	return u.new
+}
+
+// IsOutdated returns a flag, indicating that user's
+// data has been changed in the LDAP and it needs to be updated.
+func (u *UyuniUser) IsOutdated() bool {
+	return u.outdated
 }
