@@ -50,8 +50,9 @@ func NewLDAPSync(cfgpath string) *LDAPSync {
 
 func (sync *LDAPSync) Start() *LDAPSync {
 	sync.lc.Connect()
-	sync.refreshExistingLDAPUsers()
 	sync.refreshExistingUyuniUsers()
+	sync.refreshExistingLDAPUsers()
+	sync.refreshUyuniUsersStatus()
 
 	return sync
 }
@@ -70,23 +71,33 @@ func (sync LDAPSync) in(user UyuniUser, users []*UyuniUser) bool {
 	return false
 }
 
-// GetUsersToSync will return a list of users that still needs to be added to the Uyuni.
-func (sync *LDAPSync) GetUsersToSync() []*UyuniUser {
-	users := make([]*UyuniUser, 0)
-	for _, user := range sync.ldapusers {
-		if !sync.in(*user, sync.uyuniusers) && user.IsValid() {
+// Match a given user by a DN, compare all metadata.
+func (sync LDAPSync) sameAsIn(user *UyuniUser, users []*UyuniUser) (bool, error) {
+	for _, u := range users {
+		if u.Uid == user.Uid {
+			return u == user, nil
+		}
+	}
+	return false, fmt.Errorf("User UID %s was not found", user.Uid)
+}
+
+// GetNewUsers returns LDAP users that are not yet in the Uyuni
+func (sync *LDAPSync) GetNewUsers() []*UyuniUser {
+	var users []*UyuniUser
+	for _, user := range sync.uyuniusers {
+		if user.IsNew() {
 			users = append(users, user)
 		}
 	}
+
 	return users
 }
 
-// GetFailedUsers returns a list of users that matches the search criteria
-// and belong to the given group, but cannot be added due to missing data.
-func (sync *LDAPSync) GetFailedUsers() []*UyuniUser {
-	users := make([]*UyuniUser, 0)
-	for _, user := range sync.ldapusers {
-		if sync.in(*user, sync.uyuniusers) || !user.IsValid() {
+// GetOutdatedUsers returns LDAP users that are in the Uyuni, but needs refresh
+func (sync *LDAPSync) GetOutdatedUsers() []*UyuniUser {
+	var users []*UyuniUser
+	for _, user := range sync.uyuniusers {
+		if !user.IsNew() && user.IsOutdated() {
 			users = append(users, user)
 		}
 	}
@@ -97,24 +108,54 @@ func (sync *LDAPSync) GetFailedUsers() []*UyuniUser {
 // SyncUsers is creating new users in Uyuni by their names and emails.
 func (sync *LDAPSync) SyncUsers() []*UyuniUser {
 	failed := make([]*UyuniUser, 0)
-	for _, user := range sync.GetUsersToSync() {
-		// The 1 is PAM authentication usage
-		fmt.Println("Synchronising user", user.Uid)
-		_, user.Err = sync.uc.Call("user.create", sync.uc.Session(), user.Uid, "", user.Name, user.Secondname, user.Email, 1)
-		if !user.IsValid() {
-			failed = append(failed, user)
+
+	newUsers := sync.GetNewUsers()
+	if len(newUsers) > 0 {
+		fmt.Println("Adding new users...")
+		for idx, user := range newUsers {
+			idx++
+			fmt.Printf("  %d. %s\n", idx, user.Uid)
+			// The 1 is for PAM authentication usage
+			_, user.Err = sync.uc.Call("user.create", sync.uc.Session(), user.Uid, "", user.Name, user.Secondname, user.Email, 1)
+
+			if !user.IsValid() {
+				failed = append(failed, user)
+			}
 		}
+	} else {
+		fmt.Println("No new users to be added")
 	}
+
+	existingUsers := sync.GetOutdatedUsers()
+	if len(existingUsers) > 0 {
+		fmt.Println("Updating existing users...")
+		for idx, user := range existingUsers {
+			idx++
+			fmt.Printf("  %d. %s", idx, user.Uid)
+			// The 1 is for PAM authentication usage
+			//_, user.Err = sync.uc.Call("user.create", sync.uc.Session(), user.Uid, "", user.Name, user.Secondname, user.Email, 1)
+
+			//if !user.IsValid() {
+			//	failed = append(failed, user)
+			//}
+		}
+	} else {
+		fmt.Println("No users to be updated")
+	}
+
 	return failed
 }
 
 // SyncUserRoles synchronises roles of each user.
 func (sync *LDAPSync) SyncUserRoles() []*UyuniUser {
-	uyuniStaticRoles := [...]string{"satellite_admin", "org_admin", "channel_admin", "config_admin", "system_group_admin", "activation_key_admin"}
+	uyuniStaticRoles := [...]string{
+		"satellite_admin", "org_admin", "channel_admin", "config_admin",
+		"system_group_admin", "activation_key_admin", "image_admin",
+	}
 	failed := make([]*UyuniUser, 0)
 	var hasFailures bool
 	// Cleanup all roles
-	for _, user := range sync.GetUsersToSync() { // XXX: Here must be actually the same users as in LDAP, because this will only clean each user roles and update from LDAP.
+	for _, user := range sync.GetNewUsers() { // XXX: Here must be actually the same users as in LDAP, because this will only clean each user roles and update from LDAP.
 		hasFailures = false
 		fmt.Println("Synchronising roles for user", user.Uid)
 		for _, role := range uyuniStaticRoles {
@@ -152,6 +193,23 @@ func (sync LDAPSync) getAttributes(entry *ldap.Entry, attr ...string) string {
 	return ""
 }
 
+// Refresh what users are new and what needs update
+func (sync *LDAPSync) refreshUyuniUsersStatus() []*UyuniUser {
+	for _, user := range sync.ldapusers {
+		user.new = !sync.in(*user, sync.uyuniusers)
+		if !user.IsNew() {
+			isSame, err := sync.sameAsIn(user, sync.uyuniusers)
+			if err != nil {
+				user.outdated = !isSame
+			}
+		} else {
+			sync.uyuniusers = append(sync.uyuniusers, user)
+		}
+	}
+
+	return sync.uyuniusers
+}
+
 // Get all existing users in Uyuni.
 func (sync *LDAPSync) refreshExistingUyuniUsers() []*UyuniUser {
 	res, err := sync.uc.Call("user.listUsers", sync.uc.Session())
@@ -171,6 +229,16 @@ func (sync *LDAPSync) refreshExistingUyuniUsers() []*UyuniUser {
 		user.Email = userDetails["email"].(string)
 		user.Name = userDetails["first_name"].(string)
 		user.Secondname = userDetails["last_name"].(string)
+
+		// Get user roles
+		res, err = sync.uc.Call("user.listRoles", sync.uc.Session(), user.Uid)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, roleItf := range res.([]interface{}) {
+			user.AddRoles(roleItf.(string))
+		}
 
 		sync.uyuniusers = append(sync.uyuniusers, user)
 	}
