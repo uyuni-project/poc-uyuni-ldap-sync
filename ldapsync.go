@@ -212,23 +212,37 @@ func (sync *LDAPSync) pickUserByUid(uid string, users []*UyuniUser) *UyuniUser {
 
 // Refresh what users are new and what needs update
 func (sync *LDAPSync) refreshUyuniUsersStatus() []*UyuniUser {
+	var newusers []*UyuniUser
 	for _, user := range sync.ldapusers {
 		user.new = !sync.in(*user, sync.uyuniusers)
 		if !user.IsNew() {
 			isSame, err := sync.sameAsIn(user, sync.uyuniusers)
-			if err != nil {
+			if err == nil {
 				user.outdated = !isSame
 			}
 		} else {
-			sync.uyuniusers = append(sync.uyuniusers, user)
+			newusers = append(newusers, user.Clone())
+		}
+
+		for _, uUuser := range sync.uyuniusers {
+			if uUuser.Uid == user.Uid {
+				uUuser.outdated = user.outdated
+				uUuser.Name = user.Name
+				uUuser.Secondname = user.Secondname
+				uUuser.Email = user.Email
+				uUuser.FlushRoles().AddRoles(user.GetRoles()...)
+			}
 		}
 	}
+
+	sync.uyuniusers = append(sync.uyuniusers, newusers...)
 
 	return sync.uyuniusers
 }
 
 // Get all existing users in Uyuni.
 func (sync *LDAPSync) refreshExistingUyuniUsers() []*UyuniUser {
+	sync.uyuniusers = nil
 	res, err := sync.uc.Call("user.listUsers", sync.uc.Session())
 	if err != nil {
 		log.Fatal(err)
