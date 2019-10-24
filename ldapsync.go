@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/go-ldap/ldap"
+	"github.com/thoas/go-funk"
 	"log"
 	"strings"
 )
@@ -248,8 +249,13 @@ func (sync *LDAPSync) refreshExistingUyuniUsers() []*UyuniUser {
 		log.Fatal(err)
 	}
 	for _, usrdata := range res.([]interface{}) {
+		uid := usrdata.(map[string]interface{})["login"].(string)
+		if funk.Contains(sync.cr.Config().Directory.Frozen, uid) {
+			continue
+		}
+
 		user := NewUyuniUser()
-		user.Uid = usrdata.(map[string]interface{})["login"].(string)
+		user.Uid = uid
 
 		res, err = sync.uc.Call("user.getDetails", sync.uc.Session(), user.Uid)
 		if err != nil {
@@ -321,7 +327,7 @@ func (sync *LDAPSync) refreshExistingLDAPUsers() []*UyuniUser {
 	// Collect users data
 	for udn := range udns {
 		user := sync.newUserFromDN(udn)
-		if user.Uid != "" {
+		if user.Uid != "" && !funk.Contains(sync.cr.Config().Directory.Frozen, user.Uid) {
 			sync.updateLDAPUserRoles(user)
 			sync.ldapusers = append(sync.ldapusers, user)
 		}

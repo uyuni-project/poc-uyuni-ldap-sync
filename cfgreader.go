@@ -16,6 +16,7 @@ type Config struct {
 
 		Groups map[string][]string
 		Roles  map[string][]string
+		Frozen []string
 
 		// Obsolete
 		Group string
