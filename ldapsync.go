@@ -219,6 +219,16 @@ func (sync LDAPSync) getAttributes(entry *ldap.Entry, attr ...string) string {
 	return ""
 }
 
+// Pick a user from the array of those
+func (sync *LDAPSync) pickUserByUid(uid string, users []*UyuniUser) *UyuniUser {
+	for _, user := range users {
+		if user.Uid == uid {
+			return user
+		}
+	}
+	return nil
+}
+
 // Refresh what users are new and what needs update
 func (sync *LDAPSync) refreshUyuniUsersStatus() []*UyuniUser {
 	for _, user := range sync.ldapusers {
