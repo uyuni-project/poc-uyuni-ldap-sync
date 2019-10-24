@@ -61,3 +61,19 @@ func (u *UyuniUser) IsNew() bool {
 func (u *UyuniUser) IsOutdated() bool {
 	return u.outdated
 }
+
+// Clone user creates a new instance with the same data
+func (u *UyuniUser) Clone() *UyuniUser {
+	user := NewUyuniUser()
+	user.Dn = u.Dn
+	user.Uid = u.Uid
+	user.Email = u.Email
+	user.Name = u.Name
+	user.Secondname = u.Secondname
+	user.Err = u.Err
+	user.new = u.new
+	user.outdated = u.outdated
+	user.AddRoles(u.GetRoles()...)
+
+	return user
+}
