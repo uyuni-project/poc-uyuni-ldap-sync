@@ -13,6 +13,7 @@ type UyuniUser struct {
 	Err        error
 	roles      []string
 	new        bool
+	removed    bool
 	outdated   bool
 
 	POSSIBLE_ROLES [7]string
@@ -88,6 +89,12 @@ func (u *UyuniUser) IsOutdated() bool {
 	return u.outdated
 }
 
+// IsRemoved returns a flag, indicating that the user was removed
+// from the LDAP (exists in Uyuni, does not exists in LDAP)
+func (u *UyuniUser) IsRemoved() bool {
+	return u.removed
+}
+
 // Clone user creates a new instance with the same data
 func (u *UyuniUser) Clone() *UyuniUser {
 	user := NewUyuniUser()
@@ -99,6 +106,7 @@ func (u *UyuniUser) Clone() *UyuniUser {
 	user.Err = u.Err
 	user.new = u.new
 	user.outdated = u.outdated
+	user.removed = u.removed
 	user.AddRoles(u.GetRoles()...)
 
 	return user
