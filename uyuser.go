@@ -14,6 +14,8 @@ type UyuniUser struct {
 	roles      []string
 	new        bool
 	outdated   bool
+
+	POSSIBLE_ROLES [7]string
 }
 
 // Constructor
@@ -21,14 +23,33 @@ func NewUyuniUser() *UyuniUser {
 	uu := new(UyuniUser)
 	uu.roles = make([]string, 0)
 	uu.new, uu.outdated = false, false
+	uu.POSSIBLE_ROLES = [7]string{
+		"satellite_admin",
+		"org_admin",
+		"channel_admin",
+		"config_admin",
+		"system_group_admin",
+		"activation_key_admin",
+		"image_admin",
+	}
 
 	return uu
 }
 
 // AddRole allows add distinct roles to the user
-func (u *UyuniUser) AddRoles(roles ...string) {
-	for _, role := range roles {
+func (u *UyuniUser) AddRoles(newRoles ...string) {
+	for _, role := range newRoles {
 		role = strings.ToLower(role)
+
+		// Org admin gets everything
+		if role == "org_admin" {
+			u.FlushRoles()
+			for _, sr := range u.POSSIBLE_ROLES {
+				u.roles = append(u.roles, sr)
+			}
+			return
+		}
+
 		for _, userRole := range u.roles {
 			if userRole == role {
 				goto Skip
