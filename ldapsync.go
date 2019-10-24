@@ -15,12 +15,13 @@ type SearchConfig struct {
 }
 
 type LDAPSync struct {
-	lc          *LDAPCaller
-	uc          *UyuniCaller
-	cr          *ConfigReader
-	ldapusers   []*UyuniUser
-	uyuniusers  []*UyuniUser
-	roleConfigs [2]*SearchConfig
+	lc           *LDAPCaller
+	uc           *UyuniCaller
+	cr           *ConfigReader
+	ldapusers    []*UyuniUser
+	uyuniusers   []*UyuniUser
+	allldapusers []*UyuniUser
+	roleConfigs  [2]*SearchConfig
 }
 
 func NewLDAPSync(cfgpath string) *LDAPSync {
@@ -31,14 +32,14 @@ func NewLDAPSync(cfgpath string) *LDAPSync {
 		SetHost(sync.cr.Config().Directory.Host).
 		SetPort(sync.cr.Config().Directory.Port).
 		SetUser(sync.cr.Config().Directory.User).
-		SetPassword(sync.cr.Config().Directory.Password).
-		SetUsersDn(sync.cr.Config().Directory.Users)
+		SetPassword(sync.cr.Config().Directory.Password)
 
 	sync.uc = NewUyuniCaller(sync.cr.Config().Spacewalk.Url, !sync.cr.Config().Spacewalk.Checkssl).
 		SetUser(sync.cr.Config().Spacewalk.User).
 		SetPassword(sync.cr.Config().Spacewalk.Password)
 	sync.ldapusers = make([]*UyuniUser, 0)
 	sync.uyuniusers = make([]*UyuniUser, 0)
+	sync.allldapusers = make([]*UyuniUser, 0)
 
 	sync.roleConfigs = [2]*SearchConfig{
 		&SearchConfig{config: &sync.cr.Config().Directory.Roles,
@@ -52,7 +53,8 @@ func NewLDAPSync(cfgpath string) *LDAPSync {
 func (sync *LDAPSync) Start() *LDAPSync {
 	sync.lc.Connect()
 	sync.refreshExistingUyuniUsers()
-	sync.refreshExistingLDAPUsers()
+	sync.refreshStagedLDAPUsers()
+	sync.refreshAllLDAPUsers()
 	sync.refreshUyuniUsersStatus()
 
 	return sync
@@ -106,6 +108,19 @@ func (sync *LDAPSync) updateFromLDAPUser(uyuniUser *UyuniUser) {
 			}
 		}
 	}
+}
+
+// GetDeletedUsers returns an array of users that has been deleted from Uyuni.
+// They are both in Uyuni and LDAP, but they are not specified in the LDAP admin-related groups.
+func (sync *LDAPSync) GetDeletedUsers() []*UyuniUser {
+	var users []*UyuniUser
+	for _, user := range sync.allldapusers {
+		if !sync.in(*user, sync.ldapusers) && sync.in(*user, sync.uyuniusers) {
+			users = append(users, user)
+		}
+	}
+
+	return users
 }
 
 // GetNewUsers returns LDAP users that are not yet in the Uyuni
@@ -167,7 +182,27 @@ func (sync *LDAPSync) SyncUsers() []*UyuniUser {
 		fmt.Println("No users to be updated")
 	}
 
+	deletedUsers := sync.GetDeletedUsers()
+	if len(deletedUsers) > 0 {
+		fmt.Println("Deleting removed users...")
+		for idx, user := range deletedUsers {
+			idx++
+			fmt.Printf("  %d, %s\n", idx, user.Uid)
+			sync.deleteUser(user)
+		}
+	} else {
+		fmt.Println("No users to be deleted")
+	}
+
 	return failed
+}
+
+// Remove user from the Uyuni
+func (sync *LDAPSync) deleteUser(uyuniUser *UyuniUser) {
+	_, err := sync.uc.Call("user.delete", sync.uc.Session(), uyuniUser.Uid)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // Sync user roles
@@ -308,8 +343,22 @@ func (sync *LDAPSync) newUserFromDN(dn string) *UyuniUser {
 	return user
 }
 
+// Get all users from LDAP, regardless are they are meant to be in the Uyuni
+func (sync *LDAPSync) refreshAllLDAPUsers() []*UyuniUser {
+	sync.allldapusers = nil
+	request := ldap.NewSearchRequest(sync.cr.Config().Directory.Allusers,
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		"(objectClass=organizationalPerson)", []string{}, nil)
+
+	for _, entry := range sync.lc.Search(request).Entries {
+		sync.allldapusers = append(sync.allldapusers, sync.newUserFromDN(entry.DN))
+	}
+
+	return sync.allldapusers
+}
+
 // Get existing LDAP users, based on the groups mapping
-func (sync *LDAPSync) refreshExistingLDAPUsers() []*UyuniUser {
+func (sync *LDAPSync) refreshStagedLDAPUsers() []*UyuniUser {
 	sync.ldapusers = nil
 	udns := make(map[string]bool)
 
