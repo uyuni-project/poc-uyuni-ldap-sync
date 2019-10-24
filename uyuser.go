@@ -39,6 +39,11 @@ func (u *UyuniUser) AddRoles(roles ...string) {
 	}
 }
 
+func (u *UyuniUser) FlushRoles() *UyuniUser {
+	u.roles = nil
+	return u
+}
+
 // GetRoles returns all roles, assigned to the user
 func (u *UyuniUser) GetRoles() []string {
 	return u.roles
