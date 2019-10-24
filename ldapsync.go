@@ -146,6 +146,8 @@ func (sync *LDAPSync) SyncUsers() []*UyuniUser {
 
 			if !user.IsValid() {
 				failed = append(failed, user)
+			} else {
+				sync.pushUserRolesToUyuni(user)
 			}
 		}
 	} else {
@@ -157,13 +159,8 @@ func (sync *LDAPSync) SyncUsers() []*UyuniUser {
 		fmt.Println("Updating existing users...")
 		for idx, user := range existingUsers {
 			idx++
-			fmt.Printf("  %d. %s", idx, user.Uid)
-			// The 1 is for PAM authentication usage
-			//_, user.Err = sync.uc.Call("user.create", sync.uc.Session(), user.Uid, "", user.Name, user.Secondname, user.Email, 1)
-
-			//if !user.IsValid() {
-			//	failed = append(failed, user)
-			//}
+			fmt.Printf("  %d. %s\n", idx, user.Uid)
+			sync.pushUserRolesToUyuni(user)
 		}
 	} else {
 		fmt.Println("No users to be updated")
@@ -172,39 +169,23 @@ func (sync *LDAPSync) SyncUsers() []*UyuniUser {
 	return failed
 }
 
-// SyncUserRoles synchronises roles of each user.
-func (sync *LDAPSync) SyncUserRoles() []*UyuniUser {
-	uyuniStaticRoles := [...]string{
-		"satellite_admin", "org_admin", "channel_admin", "config_admin",
-		"system_group_admin", "activation_key_admin", "image_admin",
+// Sync user roles
+func (sync *LDAPSync) pushUserRolesToUyuni(uyuniUser *UyuniUser) {
+	// Remove current roles away
+	ret, err := sync.uc.Call("user.listRoles", sync.uc.Session(), uyuniUser.Uid)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
-	failed := make([]*UyuniUser, 0)
-	var hasFailures bool
-	// Cleanup all roles
-	for _, user := range sync.GetNewUsers() { // XXX: Here must be actually the same users as in LDAP, because this will only clean each user roles and update from LDAP.
-		hasFailures = false
-		fmt.Println("Synchronising roles for user", user.Uid)
-		for _, role := range uyuniStaticRoles {
-			_, err := sync.uc.Call("user.removeRole", sync.uc.Session(), user.Uid, role)
-			if err != nil {
-				fmt.Println("Failed to remove existing role", role, "due to", err.Error())
-				hasFailures = true
-			}
-		}
 
-		for _, newRole := range user.GetRoles() {
-			_, err := sync.uc.Call("user.addRole", sync.uc.Session(), user.Uid, newRole)
-			if err != nil {
-				fmt.Println("Failed to set a new role", newRole, "due to", err.Error())
-				hasFailures = true
-			}
-		}
-
-		if hasFailures {
-			failed = append(failed, user)
-		}
+	for _, role := range ret.([]interface{}) {
+		sync.uc.Call("user.removeRole", sync.uc.Session(), uyuniUser.Uid, role.(string))
 	}
-	return failed
+
+	// Add new roles
+	for _, role := range uyuniUser.GetRoles() {
+		sync.uc.Call("user.addRole", sync.uc.Session(), uyuniUser.Uid, role)
+	}
 }
 
 // Iterate over possible attribute aliases
