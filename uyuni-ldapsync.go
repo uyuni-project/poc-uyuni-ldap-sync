@@ -32,37 +32,31 @@ func (sa *SyncApp) Finish() {
 	}
 }
 
+// Print users
+func PrintUsers(title string, users []*UyuniUser) {
+	fmt.Println(title)
+	if len(users) > 0 {
+		for idx, user := range users {
+			idx++
+			fmt.Printf("  %d. %s (%s %s) at %s\n", idx, user.Uid, user.Name, user.Secondname, user.Email)
+		}
+		fmt.Println()
+	} else {
+		fmt.Println("  No users found for this criteria")
+	}
+	fmt.Println()
+}
+
 // RunSync is a main sync runner
 func RunSync(ctx *cli.Context) {
 	lc := NewSyncApp(ctx)
-	if ctx.Bool("show") || ctx.Bool("failed") {
-		var users []*UyuniUser
-		var msg string
-		if ctx.Bool("show") {
-			msg = "Users in your LDAP that matches your criteria and should be synchronised:"
-			users = lc.GetLDAPSync().GetUsersToSync()
-		} else {
-			msg = "Users in your LDAP that will not be synchronised due to missing data or duplicates:"
-			users = lc.GetLDAPSync().GetFailedUsers()
-		}
-
-		if len(users) > 0 {
-			fmt.Println(msg)
-			for idx, user := range users {
-				idx++
-				fmt.Printf("  %d. %s (%s %s) at %s\n", idx, user.Uid, user.Name, user.Secondname, user.Email)
-			}
-			fmt.Println()
-		} else {
-			fmt.Println("No users found for this criteria")
-		}
+	if ctx.Bool("overview") {
+		PrintUsers("New users:", lc.GetLDAPSync().GetNewUsers())
+		PrintUsers("Outdated users:", lc.GetLDAPSync().GetOutdatedUsers())
 	} else if ctx.Bool("sync") {
 		fmt.Println("Synchronising...")
 		for _, user := range lc.GetLDAPSync().SyncUsers() {
-			fmt.Printf("Adding new user as \"%s\" has been failed: %s\n", user.Uid, user.Err.Error())
-		}
-		for _, user := range lc.GetLDAPSync().SyncUserRoles() {
-			fmt.Printf("Updating roles for \"%s\" has been failed: %s\n", user.Uid, user.Err.Error())
+			fmt.Printf("User sync for \"%s\" has been failed: %s\n", user.Uid, user.Err.Error())
 		}
 	} else {
 		cli.ShowAppHelpAndExit(ctx, 1)
@@ -84,13 +78,8 @@ func main() {
 			Usage: "Configuration file",
 		},
 		cli.BoolFlag{
-			Name:   "show, w",
-			Usage:  "Show users that will be synchronised",
-			Hidden: false,
-		},
-		cli.BoolFlag{
-			Name:   "failed, f",
-			Usage:  "Show users that will not be synchronised",
+			Name:   "overview, o",
+			Usage:  "Users overview",
 			Hidden: false,
 		},
 		cli.BoolFlag{

@@ -13,7 +13,6 @@ type LDAPCaller struct {
 	proto    string
 	port     int64
 	usersdn  string
-	groupsdn string
 	conn     *ldap.Conn
 }
 
@@ -51,11 +50,6 @@ func (lc *LDAPCaller) SetHost(host string) *LDAPCaller {
 	return lc
 }
 
-func (lc *LDAPCaller) SetGroupsDn(dn string) *LDAPCaller {
-	lc.groupsdn = dn
-	return lc
-}
-
 func (lc *LDAPCaller) SetUsersDn(dn string) *LDAPCaller {
 	lc.usersdn = dn
 	return lc
@@ -63,9 +57,11 @@ func (lc *LDAPCaller) SetUsersDn(dn string) *LDAPCaller {
 
 func (lc *LDAPCaller) Connect() {
 	var err error
-	lc.conn, err = ldap.Dial(lc.proto, fmt.Sprintf("%s:%d", lc.host, lc.port))
-	if err != nil {
-		log.Fatal(err)
+	if lc.conn == nil {
+		lc.conn, err = ldap.Dial(lc.proto, fmt.Sprintf("%s:%d", lc.host, lc.port))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
