@@ -271,26 +271,14 @@ func (sync *LDAPSync) refreshExistingUyuniUsers() []*UyuniUser {
 	return sync.uyuniusers
 }
 
-func (sync *LDAPSync) getUserByDN(dn string) *UyuniUser {
-	var user *UyuniUser
+func (sync *LDAPSync) newUserFromDN(dn string) *UyuniUser {
+	user := NewUyuniUser()
 	request := ldap.NewSearchRequest(dn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		"(objectClass=*)", []string{}, nil)
 
 	entries := sync.lc.Search(request).Entries
-	var entry *ldap.Entry
-	switch len(entries) {
-	case 1:
-		entry = entries[0]
-	case 0:
-		fmt.Println("No users found on DN", dn)
-		return user
-	default:
-		fmt.Println("More than one user matches DN", dn)
-		return user
-	}
-
-	if entry != nil {
-		user = NewUyuniUser()
+	if len(entries) == 1 {
+		entry := entries[0]
 		user.Dn = entry.DN
 		user.Uid = entry.GetAttributeValue("uid")
 		user.Email = entry.GetAttributeValue("mail")
@@ -302,6 +290,8 @@ func (sync *LDAPSync) getUserByDN(dn string) *UyuniUser {
 			user.Name = sync.getAttributes(entry, "name", "givenName")
 			user.Secondname = entry.GetAttributeValue("sn")
 		}
+	} else {
+		fmt.Println("DN does not find one exact user:", dn)
 	}
 
 	return user
@@ -309,8 +299,8 @@ func (sync *LDAPSync) getUserByDN(dn string) *UyuniUser {
 
 // Get existing LDAP users, based on the groups mapping
 func (sync *LDAPSync) refreshExistingLDAPUsers() []*UyuniUser {
-	udns := make(map[string]bool)
 	sync.ldapusers = nil
+	udns := make(map[string]bool)
 
 	// Get all *distinct* user DNs from the "member" attiribute across all the groups
 	for gdn := range sync.cr.Config().Directory.Groups {
@@ -325,8 +315,8 @@ func (sync *LDAPSync) refreshExistingLDAPUsers() []*UyuniUser {
 
 	// Collect users data
 	for udn := range udns {
-		user := sync.getUserByDN(udn)
-		if user != nil {
+		user := sync.newUserFromDN(udn)
+		if user.Uid != "" {
 			sync.updateLDAPUserRoles(user)
 			sync.ldapusers = append(sync.ldapusers, user)
 		}
