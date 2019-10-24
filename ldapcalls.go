@@ -57,9 +57,11 @@ func (lc *LDAPCaller) SetUsersDn(dn string) *LDAPCaller {
 
 func (lc *LDAPCaller) Connect() {
 	var err error
-	lc.conn, err = ldap.Dial(lc.proto, fmt.Sprintf("%s:%d", lc.host, lc.port))
-	if err != nil {
-		log.Fatal(err)
+	if lc.conn == nil {
+		lc.conn, err = ldap.Dial(lc.proto, fmt.Sprintf("%s:%d", lc.host, lc.port))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
