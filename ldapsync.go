@@ -135,7 +135,6 @@ func (sync *LDAPSync) GetOutdatedUsers() []*UyuniUser {
 // SyncUsers is creating new users in Uyuni by their names and emails.
 func (sync *LDAPSync) SyncUsers() []*UyuniUser {
 	failed := make([]*UyuniUser, 0)
-
 	newUsers := sync.GetNewUsers()
 	if len(newUsers) > 0 {
 		fmt.Println("Adding new users...")
