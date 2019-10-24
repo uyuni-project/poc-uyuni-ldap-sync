@@ -50,7 +50,7 @@ func (u *UyuniUser) IsValid() bool {
 	return u.Uid != "" && u.Email != "" && u.Name != "" && u.Secondname != "" && u.Err == nil
 }
 
-// IsNew returns a flag, indicating if that user
+// IsNew resturns a flag, indicating if that user
 // is new to Uyuni (i.e. is not yet created)
 func (u *UyuniUser) IsNew() bool {
 	return u.new
