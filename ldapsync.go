@@ -94,11 +94,25 @@ func (sync LDAPSync) sameAsIn(user *UyuniUser, users []*UyuniUser) (bool, error)
 	return false, fmt.Errorf("User UID %s was not found", user.Uid)
 }
 
+// Returns a copy of LDAP user by Uyuni user
+func (sync *LDAPSync) updateFromLDAPUser(uyuniUser *UyuniUser) {
+	for _, ldapUser := range sync.ldapusers {
+		if ldapUser.Uid == uyuniUser.Uid {
+			uyuniUser.Name, uyuniUser.Secondname, uyuniUser.Email = ldapUser.Name, ldapUser.Secondname, ldapUser.Email
+			uyuniUser.FlushRoles()
+			for _, role := range ldapUser.GetRoles() {
+				uyuniUser.AddRoles(role)
+			}
+		}
+	}
+}
+
 // GetNewUsers returns LDAP users that are not yet in the Uyuni
 func (sync *LDAPSync) GetNewUsers() []*UyuniUser {
 	var users []*UyuniUser
 	for _, user := range sync.uyuniusers {
 		if user.IsNew() {
+			sync.updateFromLDAPUser(user)
 			users = append(users, user)
 		}
 	}
