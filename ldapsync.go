@@ -75,7 +75,20 @@ func (sync LDAPSync) in(user UyuniUser, users []*UyuniUser) bool {
 func (sync LDAPSync) sameAsIn(user *UyuniUser, users []*UyuniUser) (bool, error) {
 	for _, u := range users {
 		if u.Uid == user.Uid {
-			return u == user, nil
+			same := u.Email == user.Email
+			if same {
+				same = u.Name == user.Name
+			}
+
+			if same {
+				same = u.Secondname == user.Secondname
+			}
+
+			if same {
+				same = CompareRoles(user, u)
+			}
+
+			return same, nil
 		}
 	}
 	return false, fmt.Errorf("User UID %s was not found", user.Uid)
