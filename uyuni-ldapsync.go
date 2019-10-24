@@ -51,8 +51,16 @@ func PrintUsers(title string, users []*UyuniUser) {
 func RunSync(ctx *cli.Context) {
 	lc := NewSyncApp(ctx)
 	if ctx.Bool("overview") {
+		fmt.Println("Ignored users:")
+		for idx, uid := range lc.GetLDAPSync().cr.Config().Directory.Frozen {
+			idx++
+			fmt.Printf("  %d. %s\n", idx, uid)
+		}
+		fmt.Println()
+
 		PrintUsers("New users:", lc.GetLDAPSync().GetNewUsers())
 		PrintUsers("Outdated users:", lc.GetLDAPSync().GetOutdatedUsers())
+		PrintUsers("Removed users:", lc.GetLDAPSync().GetDeletedUsers())
 	} else if ctx.Bool("sync") {
 		fmt.Println("Synchronising...")
 		for _, user := range lc.GetLDAPSync().SyncUsers() {

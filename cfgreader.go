@@ -14,12 +14,10 @@ type Config struct {
 		Host     string
 		Port     int64
 
-		Groups map[string][]string
-		Roles  map[string][]string
-
-		// Obsolete
-		Group string
-		Users string
+		Groups   map[string][]string
+		Roles    map[string][]string
+		Frozen   []string
+		Allusers string
 	}
 	Spacewalk struct {
 		Url      string

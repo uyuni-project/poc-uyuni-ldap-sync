@@ -12,7 +12,6 @@ type LDAPCaller struct {
 	host     string
 	proto    string
 	port     int64
-	usersdn  string
 	conn     *ldap.Conn
 }
 
@@ -47,11 +46,6 @@ func (lc *LDAPCaller) SetProto(proto string) *LDAPCaller {
 
 func (lc *LDAPCaller) SetHost(host string) *LDAPCaller {
 	lc.host = host
-	return lc
-}
-
-func (lc *LDAPCaller) SetUsersDn(dn string) *LDAPCaller {
-	lc.usersdn = dn
 	return lc
 }
 
