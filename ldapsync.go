@@ -406,12 +406,14 @@ func (sync *LDAPSync) refreshStagedLDAPUsers() []*UyuniUser {
 	udns := make(map[string]bool)
 
 	// Get all *distinct* user DNs from the "member" attiribute across all the groups
-	for gdn := range sync.cr.Config().Directory.Groups {
-		request := ldap.NewSearchRequest(gdn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-			"(objectClass=*)", []string{}, nil)
-		for _, entry := range sync.lc.Search(request).Entries {
-			for _, udn := range entry.GetAttributeValues("member") {
-				udns[udn] = true
+	for _, roleset := range []map[string][]string{sync.cr.Config().Directory.Groups, sync.cr.Config().Directory.Roles} {
+		for gdn := range roleset {
+			request := ldap.NewSearchRequest(gdn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+				"(objectClass=*)", []string{}, nil)
+			for _, entry := range sync.lc.Search(request).Entries {
+				for _, udn := range append(entry.GetAttributeValues("member"), entry.GetAttributeValues("roleOccupant")...) {
+					udns[udn] = true
+				}
 			}
 		}
 	}
