@@ -51,6 +51,7 @@ func NewLDAPSync(cfgpath string) *LDAPSync {
 
 func (sync *LDAPSync) Start() *LDAPSync {
 	sync.lc.Connect()
+
 	sync.verifyIgnoredUsers()
 	sync.refreshExistingUyuniUsers()
 	sync.refreshStagedLDAPUsers()
@@ -198,14 +199,11 @@ func (sync *LDAPSync) SyncUsers() []*UyuniUser {
 
 	deletedUsers := sync.GetDeletedUsers()
 	if len(deletedUsers) > 0 {
-		fmt.Println("Deleting removed users...")
-		for idx, user := range deletedUsers {
-			idx++
-			fmt.Printf("  %d, %s\n", idx, user.Uid)
+		log.Debugf("Deleting removed %d users", len(deletedUsers))
+		for _, user := range deletedUsers {
+			log.Debugf("Remove user: %s", user.Uid)
 			sync.deleteUser(user)
 		}
-	} else {
-		fmt.Println("No users to be deleted")
 	}
 
 	log.Infof("Added %d new users, updated %d existing users, removed %d users", len(newUsers), len(existingUsers), len(deletedUsers))
@@ -274,7 +272,7 @@ func (sync *LDAPSync) verifyIgnoredUsers() {
 	for _, uid := range sync.cr.Config().Directory.Frozen {
 		res, err := sync.uc.Call("user.listRoles", sync.uc.Session(), uid)
 		if err != nil {
-			fmt.Println("No user found with UID", uid)
+			log.Errorf("No users has been found with the UID '%s'", uid)
 		} else {
 			for _, role := range res.([]interface{}) {
 				if role.(string) == "org_admin" {
@@ -382,7 +380,7 @@ func (sync *LDAPSync) newUserFromDN(dn string) *UyuniUser {
 			user.Secondname = entry.GetAttributeValue("sn")
 		}
 	} else {
-		fmt.Println("DN does not find one exact user:", dn)
+		log.Errorf("DN '%s' matches more or less than one distinct user", dn)
 	}
 
 	return user
