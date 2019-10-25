@@ -10,6 +10,11 @@ import (
 
 // Config object
 type Config struct {
+	Common struct {
+		Configpath string
+		Logpath    string
+	}
+
 	Directory struct {
 		User     string
 		Password string
