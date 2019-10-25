@@ -268,16 +268,6 @@ func (sync LDAPSync) getAttributes(entry *ldap.Entry, attr ...string) string {
 	return ""
 }
 
-// Pick a user from the array of those
-func (sync *LDAPSync) pickUserByUid(uid string, users []*UyuniUser) *UyuniUser {
-	for _, user := range users {
-		if user.Uid == uid {
-			return user
-		}
-	}
-	return nil
-}
-
 // At least one ignored/frozen user must have org_admin role
 func (sync *LDAPSync) verifyIgnoredUsers() {
 	valid := false
