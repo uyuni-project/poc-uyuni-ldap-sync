@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"github.com/go-yaml/yaml"
 	"io/ioutil"
-	"log"
 	"os"
 )
 
 // Config object
 type Config struct {
+	Common struct {
+		Configpath string
+		Logpath    string
+	}
+
 	Directory struct {
 		User     string
 		Password string
@@ -22,6 +26,7 @@ type Config struct {
 		Frozen   []string
 		Allusers string
 	}
+
 	Spacewalk struct {
 		Url      string
 		User     string
@@ -69,6 +74,23 @@ func (cfg *ConfigReader) loadFromPath() {
 
 	if err := yaml.Unmarshal(cfgBytes, &cfg.config); err != nil {
 		log.Fatal(err)
+	} else {
+		cfg.setDefaults()
+	}
+}
+
+// Set defaults if they were not configured
+func (cfg *ConfigReader) setDefaults() {
+	if cfg.Config().Common.Configpath == "" {
+		cfg.config.Common.Configpath = "/etc/rhn/ldapsync.conf"
+	}
+
+	if cfg.Config().Common.Logpath == "" {
+		cfg.config.Common.Logpath = "/var/log/rhn/ldapsync.log"
+	}
+
+	if cfg.Config().Directory.Port == 0 {
+		cfg.config.Directory.Port = 389
 	}
 }
 

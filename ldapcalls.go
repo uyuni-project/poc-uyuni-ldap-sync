@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/go-ldap/ldap"
-	"log"
 )
 
 type LDAPCaller struct {

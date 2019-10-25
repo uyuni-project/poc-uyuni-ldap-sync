@@ -5,16 +5,18 @@ import (
 )
 
 type UyuniUser struct {
-	Dn         string
-	Uid        string
-	Name       string
-	Secondname string
-	Email      string
-	Err        error
-	roles      []string
-	new        bool
-	removed    bool
-	outdated   bool
+	Dn             string
+	Uid            string
+	Name           string
+	Secondname     string
+	Email          string
+	Err            error
+	roles          []string
+	new            bool
+	removed        bool
+	outdated       bool
+	roleschanged   bool
+	accountchanged bool
 
 	POSSIBLE_ROLES [7]string
 }
@@ -95,7 +97,18 @@ func (u *UyuniUser) IsRemoved() bool {
 	return u.removed
 }
 
-// Clone user creates a new instance with the same data
+// IsAccontDataChanged returns a flag, indicated that account data,
+// such as email, name/second name etc has been changed.
+func (u *UyuniUser) IsAccountDataChanged() bool {
+	return u.accountchanged
+}
+
+// IsRolesChanged returns a flag, indicated that roles data has been changed.
+func (u *UyuniUser) IsRolesChanged() bool {
+	return u.roleschanged
+}
+
+// Clone creates a new user instance with the same data
 func (u *UyuniUser) Clone() *UyuniUser {
 	user := NewUyuniUser()
 	user.Dn = u.Dn
@@ -107,6 +120,8 @@ func (u *UyuniUser) Clone() *UyuniUser {
 	user.new = u.new
 	user.outdated = u.outdated
 	user.removed = u.removed
+	user.accountchanged = u.accountchanged
+	user.roleschanged = u.roleschanged
 	user.AddRoles(u.GetRoles()...)
 
 	return user

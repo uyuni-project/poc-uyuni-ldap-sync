@@ -2,30 +2,71 @@ package main
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
+	"github.com/t-tomalak/logrus-easy-formatter"
 	"github.com/urfave/cli"
-	"log"
 	"os"
+	"strings"
+	"time"
 )
+
+var log *logrus.Logger
 
 type SyncApp struct {
 	ldapSync   *LDAPSync
 	cliContext *cli.Context
+	output     *os.File
 }
 
 func NewSyncApp(ctx *cli.Context) *SyncApp {
 	sa := new(SyncApp)
+	sa.output = os.Stdout
 	sa.cliContext = ctx
 
 	return sa
 }
 
+// SetupLogger is used to setup all the preferences for the logging
+func (sa *SyncApp) setupLogger(cr *ConfigReader) {
+	log = logrus.New()
+
+	if !sa.cliContext.Bool("verbose") {
+		fmtr := new(easy.Formatter)
+		fmtr.TimestampFormat = "2006-01-02 15:04:05"
+		fmtr.LogFormat = "[%lvl%]: %time% - %msg%\n"
+		log.SetFormatter(fmtr)
+		fout, err := os.OpenFile(cr.Config().Common.Logpath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0640)
+		if err == nil {
+			sa.output = fout
+		} else {
+			log.Info("Failed to log to file, using default stderr")
+		}
+	} else {
+		fmtr := new(logrus.TextFormatter)
+		fmtr.TimestampFormat = time.RFC822Z
+		fmtr.FullTimestamp = true
+		fmtr.DisableLevelTruncation = true
+		fmtr.DisableColors = false
+		fmtr.ForceQuote = false
+		log.SetFormatter(fmtr)
+	}
+
+	log.SetOutput(sa.output)
+	log.SetLevel(logrus.TraceLevel)
+}
+
+// GetLDAPSync returns a pointer to the LDAPSync object instance.
+// Creates new, if not yet initialised.
 func (sa *SyncApp) GetLDAPSync() *LDAPSync {
 	if sa.ldapSync == nil {
 		sa.ldapSync = NewLDAPSync(sa.cliContext.String("config")).Start()
+		sa.setupLogger(sa.ldapSync.cr)
 	}
+
 	return sa.ldapSync
 }
 
+// Finish the sync and close all connections
 func (sa *SyncApp) Finish() {
 	if sa.ldapSync != nil {
 		sa.ldapSync.Finish()
@@ -34,23 +75,23 @@ func (sa *SyncApp) Finish() {
 
 // Print users
 func PrintUsers(title string, users []*UyuniUser) {
-	fmt.Println(title)
 	if len(users) > 0 {
+		fmt.Printf("%s:\n", title)
 		for idx, user := range users {
 			idx++
 			fmt.Printf("  %d. %s (%s %s) at %s\n", idx, user.Uid, user.Name, user.Secondname, user.Email)
 		}
 		fmt.Println()
 	} else {
-		fmt.Println("  No users found for this criteria")
+		fmt.Printf("No %s has been found for this criteria\n", strings.ToLower(title))
 	}
-	fmt.Println()
 }
 
 // RunSync is a main sync runner
 func RunSync(ctx *cli.Context) {
 	lc := NewSyncApp(ctx)
 	if ctx.Bool("overview") {
+		// TODO: add reporting facility instead of this
 		fmt.Println("Ignored users:")
 		for idx, uid := range lc.GetLDAPSync().cr.Config().Directory.Frozen {
 			idx++
@@ -58,14 +99,11 @@ func RunSync(ctx *cli.Context) {
 		}
 		fmt.Println()
 
-		PrintUsers("New users:", lc.GetLDAPSync().GetNewUsers())
-		PrintUsers("Outdated users:", lc.GetLDAPSync().GetOutdatedUsers())
-		PrintUsers("Removed users:", lc.GetLDAPSync().GetDeletedUsers())
+		PrintUsers("New users", lc.GetLDAPSync().GetNewUsers())
+		PrintUsers("Outdated users", lc.GetLDAPSync().GetOutdatedUsers())
+		PrintUsers("Removed users", lc.GetLDAPSync().GetDeletedUsers())
 	} else if ctx.Bool("sync") {
-		fmt.Println("Synchronising...")
-		for _, user := range lc.GetLDAPSync().SyncUsers() {
-			fmt.Printf("User sync for \"%s\" has been failed: %s\n", user.Uid, user.Err.Error())
-		}
+		lc.GetLDAPSync().SyncUsers()
 	} else {
 		cli.ShowAppHelpAndExit(ctx, 1)
 	}
@@ -82,7 +120,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "config, c",
-			Value: "./ldapsync.conf", // TODO: change that
+			Value: "/etc/rhn/ldapsync.conf", // TODO: change that
 			Usage: "Configuration file",
 		},
 		cli.BoolFlag{
@@ -93,6 +131,11 @@ func main() {
 		cli.BoolFlag{
 			Name:   "sync, s",
 			Usage:  "Synchronise users",
+			Hidden: false,
+		},
+		cli.BoolFlag{
+			Name:   "verbose, d",
+			Usage:  "Verbose (debug) mode",
 			Hidden: false,
 		},
 	}

@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"github.com/kolo/xmlrpc"
-	"log"
 	"net/http"
 )
 

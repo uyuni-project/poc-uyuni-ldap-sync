@@ -1,13 +1,13 @@
-uyuni-ldapsync(1) -- Utility to synchronise users between LDAP of your choice and the Uyuni server 
+mgr-ldapsync(1) -- Utility to synchronise users between LDAP of your choice and the Uyuni server
 ====
 
 ## SYNOPSIS
 
-`uyuni-ldapsync` [option]
+`mgr-ldapsync` [option]
 
 ## DESCRIPTION
 
-**uyuni-ldapsync(1)** is a program that synchronises LDAP users with
+**mgr-ldapsync(1)** is a program that synchronises LDAP users with
 the Uyuni server. It will add users from LDAP, update them if their
 attributes changed or remove them from Uyuni.
 
@@ -18,7 +18,7 @@ attributes changed or remove them from Uyuni.
   is: `/etc/rhn/ldapsync.conf`
 
 * `-o`, `--overview`:
-  Overview or "dry run" mode. In this case the `uyuni-ldapsync` will
+  Overview or "dry run" mode. In this case the `mgr-ldapsync` will
   only show you what is going to change, but will not perform any real
   actions.
 
@@ -29,12 +29,12 @@ attributes changed or remove them from Uyuni.
   Shows help.
 
 * `-v`, `--version`:
-  Shows current version of the `uyuni-ldapsync`.
+  Shows current version of the `mgr-ldapsync`.
 
 ## REQUIREMENTS
 
 LDAP is very flexible and easy to customise. Because of this,
-`uyuni-ldapsync` allows users to adjust the configuration for the
+`mgr-ldapsync` allows users to adjust the configuration for the
 existing LDAP schema. If not specified otherwise, default
 configuration file is first looked up in `/etc/rhn/ldapsync.conf`.
 
@@ -63,7 +63,7 @@ Each user should have the following **mandatory** attributes:
    - `sn` (optional, if `cn` has name and second name)
    - `mail`
 
-**IMPORTANT:** The `uyuni-ldapsync` is not expected to work properly,
+**IMPORTANT:** The `mgr-ldapsync` is not expected to work properly,
 if the requirements above are not met.
 
 ## CONFIGURATION
@@ -98,7 +98,7 @@ The **directory** section has the following attributes:
 The `directory` section has also the following directives:
 
 1. `frozen` (map, mandatory). This is a list of Uyuni user IDs that
-   `uyuni-ldapsync` should _completely_ ignore. Any user ID, specified
+   `mgr-ldapsync` should _completely_ ignore. Any user ID, specified
    in this directive will always exclude any user in the Uyuni server
    from being affected by LDAP operations. This is usually the main
    "static" administrator account or an emergency login. This
@@ -139,6 +139,40 @@ API of Uyuni server:
 
 * `password` (string):
    Password for the Uyuni administrator username.
+
+## LIST OF UYUNI ROLES
+
+Uyuni server supports the following roles:
+
+* `org_admin`:
+   Administrative role. Appears as "Organization Administrator". It
+   can administer the entire Uyuni server across all the organisations.
+
+* `satellite_admin`:
+   Administrative role. Appears as "SUSE Manager Administrator". It
+   can administer the entire Uyuni server, but only within the given
+   organisation.
+
+* `config_admin`:
+   Appears as "Configuration Administrator" and gives user to
+   configure individual system profiles, channels and certain
+   configuration files.
+
+* `channel_admin`:
+   Appears as "Channel Administrator" and gives user ability to add,
+   modify and delete channels.
+
+* `system_group_admin`:
+   Appears as "System Group Administrator" and gives user to access
+   systems section.
+
+* `activation_key_admin`:
+   Appears as "Activation Key Administrator" and gives user the
+   control over activation keys, subscriptions etc.
+
+* `image_admin`:
+   Appears as "Image Administrator" and is related to OS images
+   administration to build them, store in the registry etc.
 
 ## EXAMPLES
 
@@ -198,7 +232,7 @@ follow the examples there.
 
 ## DIAGNOSTICS
 
-`uyuni-ldapsync` returns zero on normal operation, non-zero otherwise.
+`mgr-ldapsync` returns zero on normal operation, non-zero otherwise.
 
 ## AUTHOR
 
