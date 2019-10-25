@@ -81,19 +81,36 @@ func (sync LDAPSync) sameAsIn(user *UyuniUser, users []*UyuniUser) (bool, error)
 			same := u.Email == user.Email
 			if same {
 				same = u.Name == user.Name
+			} else {
+				user.accountchanged = true
+				log.Debugf("User %s email has been changed from %s to %s", user.Uid, user.Email, u.Email)
 			}
 
 			if same {
 				same = u.Secondname == user.Secondname
+			} else {
+				user.accountchanged = true
+				log.Debugf("User %s name has been changed from %s to %s", user.Uid, user.Name, u.Name)
 			}
 
 			if same {
 				same = CompareRoles(user, u)
+			} else {
+				user.accountchanged = true
+				log.Debugf("User %s family name has been changed from %s to %s", user.Uid, user.Secondname, u.Secondname)
+			}
+
+			if !same {
+				user.roleschanged = true
+				log.Debugf("User %s role set has been changed", user.Uid)
 			}
 
 			return same, nil
 		}
 	}
+
+	log.Debugf("Unable to compare user '%s': user not found", user.Uid)
+
 	return false, fmt.Errorf("User UID %s was not found", user.Uid)
 }
 
