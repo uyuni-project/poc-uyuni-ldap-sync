@@ -1,16 +1,16 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "UYUNI\-LDAPSYNC" "1" "2019-10-24" "" ""
+.TH "MGR\-LDAPSYNC" "1" "2019-10-25" "" ""
 .
 .SH "NAME"
-\fBuyuni\-ldapsync\fR \- Utility to synchronise users between LDAP of your choice and the Uyuni server
+\fBmgr\-ldapsync\fR \- Utility to synchronise users between LDAP of your choice and the Uyuni server
 .
 .SH "SYNOPSIS"
-\fBuyuni\-ldapsync\fR [option]
+\fBmgr\-ldapsync\fR [option]
 .
 .SH "DESCRIPTION"
-\fBuyuni\-ldapsync(1)\fR is a program that synchronises LDAP users with the Uyuni server\. It will add users from LDAP, update them if their attributes changed or remove them from Uyuni\.
+\fBmgr\-ldapsync(1)\fR is a program that synchronises LDAP users with the Uyuni server\. It will add users from LDAP, update them if their attributes changed or remove them from Uyuni\.
 .
 .SH "OPTIONS"
 .
@@ -20,7 +20,7 @@ Specifiy an optional configuration file\. Default configuration file is: \fB/etc
 .
 .TP
 \fB\-o\fR, \fB\-\-overview\fR
-Overview or "dry run" mode\. In this case the \fBuyuni\-ldapsync\fR will only show you what is going to change, but will not perform any real actions\.
+Overview or "dry run" mode\. In this case the \fBmgr\-ldapsync\fR will only show you what is going to change, but will not perform any real actions\.
 .
 .TP
 \fB\-s\fR, \fB\-\-sync\fR
@@ -32,10 +32,10 @@ Shows help\.
 .
 .TP
 \fB\-v\fR, \fB\-\-version\fR
-Shows current version of the \fBuyuni\-ldapsync\fR\.
+Shows current version of the \fBmgr\-ldapsync\fR\.
 .
 .SH "REQUIREMENTS"
-LDAP is very flexible and easy to customise\. Because of this, \fBuyuni\-ldapsync\fR allows users to adjust the configuration for the existing LDAP schema\. If not specified otherwise, default configuration file is first looked up in \fB/etc/rhn/ldapsync\.conf\fR\.
+LDAP is very flexible and easy to customise\. Because of this, \fBmgr\-ldapsync\fR allows users to adjust the configuration for the existing LDAP schema\. If not specified otherwise, default configuration file is first looked up in \fB/etc/rhn/ldapsync\.conf\fR\.
 .
 .P
 There are certain requirements how to manage users in LDAP so they are synchronised correctly with the Uyuni server:
@@ -75,7 +75,7 @@ Each user should have the following \fBmandatory\fR attributes:
 .IP "" 0
 .
 .P
-\fBIMPORTANT:\fR The \fBuyuni\-ldapsync\fR is not expected to work properly, if the requirements above are not met\.
+\fBIMPORTANT:\fR The \fBmgr\-ldapsync\fR is not expected to work properly, if the requirements above are not met\.
 .
 .SH "CONFIGURATION"
 Configuration file should be a valid YAML file\.
@@ -118,7 +118,7 @@ DN for all the users subtree\. Example: \fBou=users,dc=example,dc=com\fR\.
 The \fBdirectory\fR section has also the following directives:
 .
 .IP "1." 4
-\fBfrozen\fR (map, mandatory)\. This is a list of Uyuni user IDs that \fBuyuni\-ldapsync\fR should \fIcompletely\fR ignore\. Any user ID, specified in this directive will always exclude any user in the Uyuni server from being affected by LDAP operations\. This is usually the main "static" administrator account or an emergency login\. This directive is mandatory and LDAP sync will refuse to work if you have no at least one frozen user with \fBorg_admin\fR permissions assigned\.
+\fBfrozen\fR (map, mandatory)\. This is a list of Uyuni user IDs that \fBmgr\-ldapsync\fR should \fIcompletely\fR ignore\. Any user ID, specified in this directive will always exclude any user in the Uyuni server from being affected by LDAP operations\. This is usually the main "static" administrator account or an emergency login\. This directive is mandatory and LDAP sync will refuse to work if you have no at least one frozen user with \fBorg_admin\fR permissions assigned\.
 .
 .IP "2." 4
 \fBgroups\fR or \fBroles\fR map, at least one of them must be present\. \fBEither\fR directive is \fBmandatory\fR to specify, in order to properly manage Uyuni roles\. Both directives has the same structure a list of Uyuni roles, attached to a CN in the LDAP\. See "examples" section below for more details:
@@ -158,6 +158,37 @@ Username of the Uyuni administrator with the \fBorg_admin\fR or \fBsatellite_adm
 .TP
 \fBpassword\fR (string)
 Password for the Uyuni administrator username\.
+.
+.SH "LIST OF UYUNI ROLES"
+Uyuni server supports the following roles:
+.
+.TP
+\fBorg_admin\fR
+Administrative role\. Appears as "Organization Administrator"\. It can administer the entire Uyuni server across all the organisations\.
+.
+.TP
+\fBsatellite_admin\fR
+Administrative role\. Appears as "SUSE Manager Administrator"\. It can administer the entire Uyuni server, but only within the given organisation\.
+.
+.TP
+\fBconfig_admin\fR
+Appears as "Configuration Administrator" and gives user to configure individual system profiles, channels and certain configuration files\.
+.
+.TP
+\fBchannel_admin\fR
+Appears as "Channel Administrator" and gives user ability to add, modify and delete channels\.
+.
+.TP
+\fBsystem_group_admin\fR
+Appears as "System Group Administrator" and gives user to access systems section\.
+.
+.TP
+\fBactivation_key_admin\fR
+Appears as "Activation Key Administrator" and gives user the control over activation keys, subscriptions etc\.
+.
+.TP
+\fBimage_admin\fR
+Appears as "Image Administrator" and is related to OS images administration to build them, store in the registry etc\.
 .
 .SH "EXAMPLES"
 \fBExample: map LDAP roles\fR
@@ -231,7 +262,7 @@ The configuration above will assign a \fBconfig_admin\fR and a \fBchannel_group_
 For more information, look into the configuration file itself and follow the examples there\.
 .
 .SH "DIAGNOSTICS"
-\fBuyuni\-ldapsync\fR returns zero on normal operation, non\-zero otherwise\.
+\fBmgr\-ldapsync\fR returns zero on normal operation, non\-zero otherwise\.
 .
 .SH "AUTHOR"
 Bo Maryniuk \fIbo@suse\.de\fR

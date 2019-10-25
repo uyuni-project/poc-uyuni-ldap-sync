@@ -140,6 +140,40 @@ API of Uyuni server:
 * `password` (string):
    Password for the Uyuni administrator username.
 
+## LIST OF UYUNI ROLES
+
+Uyuni server supports the following roles:
+
+* `org_admin`:
+   Administrative role. Appears as "Organization Administrator". It
+   can administer the entire Uyuni server across all the organisations.
+
+* `satellite_admin`:
+   Administrative role. Appears as "SUSE Manager Administrator". It
+   can administer the entire Uyuni server, but only within the given
+   organisation.
+
+* `config_admin`:
+   Appears as "Configuration Administrator" and gives user to
+   configure individual system profiles, channels and certain
+   configuration files.
+
+* `channel_admin`:
+   Appears as "Channel Administrator" and gives user ability to add,
+   modify and delete channels.
+
+* `system_group_admin`:
+   Appears as "System Group Administrator" and gives user to access
+   systems section.
+
+* `activation_key_admin`:
+   Appears as "Activation Key Administrator" and gives user the
+   control over activation keys, subscriptions etc.
+
+* `image_admin`:
+   Appears as "Image Administrator" and is related to OS images
+   administration to build them, store in the registry etc.
+
 ## EXAMPLES
 
 **Example: map LDAP roles**
