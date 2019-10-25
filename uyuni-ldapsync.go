@@ -84,7 +84,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "config, c",
-			Value: "./ldapsync.conf", // TODO: change that
+			Value: "/etc/rhn/ldapsync.conf", // TODO: change that
 			Usage: "Configuration file",
 		},
 		cli.BoolFlag{
