@@ -222,7 +222,18 @@ func (sync *LDAPSync) deleteUser(uyuniUser *UyuniUser) {
 
 // Push account data to Uyuni
 func (sync *LDAPSync) pushUserAccountDataToUyuni(user *UyuniUser) {
-	log.Errorf("Cannot push account data for %s to Uyuni: not implemented yet", user.Uid)
+	_, err := sync.uc.Call("user.setDetails", sync.uc.Session(), user.Uid, map[string]string{
+		"first_name": user.Name, "last_name": user.Secondname, "email": user.Email})
+	if err != nil {
+		log.Errorf("Failed to push user account data for %s: %s", user.Uid, err.Error())
+		return
+	}
+
+	_, err = sync.uc.Call("user.usePamAuthentication", sync.uc.Session(), user.Uid, 1)
+	if err != nil {
+		log.Errorf("Failed to push user authentication settings for %s: %s", user.Uid, err.Error())
+		return
+	}
 }
 
 // Sync user roles
