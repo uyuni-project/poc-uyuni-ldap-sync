@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"log"
 	"os"
 )
+
+var log = logrus.New()
 
 type SyncApp struct {
 	ldapSync   *LDAPSync

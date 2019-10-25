@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/go-yaml/yaml"
 	"io/ioutil"
-	"log"
 	"os"
 )
 

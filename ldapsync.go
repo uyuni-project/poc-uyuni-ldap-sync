@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/go-ldap/ldap"
 	"github.com/thoas/go-funk"
-	"log"
 	"strings"
 )
 
