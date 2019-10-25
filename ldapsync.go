@@ -52,6 +52,7 @@ func NewLDAPSync(cfgpath string) *LDAPSync {
 
 func (sync *LDAPSync) Start() *LDAPSync {
 	sync.lc.Connect()
+	sync.verifyIgnoredUsers()
 	sync.refreshExistingUyuniUsers()
 	sync.refreshStagedLDAPUsers()
 	sync.refreshAllLDAPUsers()
@@ -244,6 +245,29 @@ func (sync *LDAPSync) pickUserByUid(uid string, users []*UyuniUser) *UyuniUser {
 		}
 	}
 	return nil
+}
+
+// At least one ignored/frozen user must have org_admin role
+func (sync *LDAPSync) verifyIgnoredUsers() {
+	valid := false
+	for _, uid := range sync.cr.Config().Directory.Frozen {
+		res, err := sync.uc.Call("user.listRoles", sync.uc.Session(), uid)
+		if err != nil {
+			fmt.Println("No user found with UID", uid)
+		} else {
+			for _, role := range res.([]interface{}) {
+				if role.(string) == "org_admin" {
+					valid = true
+					goto End
+				}
+			}
+		}
+	}
+End:
+	if !valid {
+		log.Fatal("In Uyuni server no actual frozen accounts found with the role 'org_admin'. " +
+			"You are risking permanently locking Uyuni server, if you have incorrect LDAP users settings.")
+	}
 }
 
 // Refresh what users are new and what needs update
