@@ -3,32 +3,70 @@ package main
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"github.com/t-tomalak/logrus-easy-formatter"
 	"github.com/urfave/cli"
 	"os"
 	"strings"
+	"time"
 )
 
-var log = logrus.New()
+var log *logrus.Logger
 
 type SyncApp struct {
 	ldapSync   *LDAPSync
 	cliContext *cli.Context
+	output     *os.File
 }
 
 func NewSyncApp(ctx *cli.Context) *SyncApp {
 	sa := new(SyncApp)
+	sa.output = os.Stdout
 	sa.cliContext = ctx
 
 	return sa
 }
 
+// SetupLogger is used to setup all the preferences for the logging
+func (sa *SyncApp) setupLogger(cr *ConfigReader) {
+	log = logrus.New()
+
+	if !sa.cliContext.Bool("verbose") {
+		fmtr := new(easy.Formatter)
+		fmtr.TimestampFormat = "2006-01-02 15:04:05"
+		fmtr.LogFormat = "[%lvl%]: %time% - %msg%\n"
+		log.SetFormatter(fmtr)
+		fout, err := os.OpenFile(cr.Config().Common.Logpath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0640)
+		if err == nil {
+			sa.output = fout
+		} else {
+			log.Info("Failed to log to file, using default stderr")
+		}
+	} else {
+		fmtr := new(logrus.TextFormatter)
+		fmtr.TimestampFormat = time.RFC822Z
+		fmtr.FullTimestamp = true
+		fmtr.DisableLevelTruncation = true
+		fmtr.DisableColors = false
+		fmtr.ForceQuote = false
+		log.SetFormatter(fmtr)
+	}
+
+	log.SetOutput(sa.output)
+	log.SetLevel(logrus.TraceLevel)
+}
+
+// GetLDAPSync returns a pointer to the LDAPSync object instance.
+// Creates new, if not yet initialised.
 func (sa *SyncApp) GetLDAPSync() *LDAPSync {
 	if sa.ldapSync == nil {
 		sa.ldapSync = NewLDAPSync(sa.cliContext.String("config")).Start()
+		sa.setupLogger(sa.ldapSync.cr)
 	}
+
 	return sa.ldapSync
 }
 
+// Finish the sync and close all connections
 func (sa *SyncApp) Finish() {
 	if sa.ldapSync != nil {
 		sa.ldapSync.Finish()
@@ -93,6 +131,11 @@ func main() {
 		cli.BoolFlag{
 			Name:   "sync, s",
 			Usage:  "Synchronise users",
+			Hidden: false,
+		},
+		cli.BoolFlag{
+			Name:   "verbose, d",
+			Usage:  "Verbose (debug) mode",
 			Hidden: false,
 		},
 	}
