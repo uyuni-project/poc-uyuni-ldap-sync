@@ -167,36 +167,33 @@ func (sync *LDAPSync) GetOutdatedUsers() []*UyuniUser {
 
 // SyncUsers is creating new users in Uyuni by their names and emails.
 func (sync *LDAPSync) SyncUsers() []*UyuniUser {
+	log.Info("Begin user synchronisation between LDAP and Uyuni server")
+
 	failed := make([]*UyuniUser, 0)
 	newUsers := sync.GetNewUsers()
 	if len(newUsers) > 0 {
-		fmt.Println("Adding new users...")
-		for idx, user := range newUsers {
-			idx++
-			fmt.Printf("  %d. %s\n", idx, user.Uid)
-			// The 1 is for PAM authentication usage
+		log.Debugf("Found %d new users", len(newUsers))
+		for _, user := range newUsers {
+			log.Debugf("New user: %s", user.Uid)
 			_, user.Err = sync.uc.Call("user.create", sync.uc.Session(), user.Uid, "", user.Name, user.Secondname, user.Email, 1)
 
 			if !user.IsValid() {
 				failed = append(failed, user)
+				log.Debugf("Failed to create user %s due to %s", user.Uid, user.Err.Error())
 			} else {
 				sync.pushUserRolesToUyuni(user)
 			}
 		}
-	} else {
-		fmt.Println("No new users to be added")
 	}
 
 	existingUsers := sync.GetOutdatedUsers()
 	if len(existingUsers) > 0 {
-		fmt.Println("Updating existing users...")
-		for idx, user := range existingUsers {
-			idx++
-			fmt.Printf("  %d. %s\n", idx, user.Uid)
+		log.Debugf("Updating %d users", len(existingUsers))
+		for _, user := range existingUsers {
+			log.Debugf("Update data for user: %s", user.Uid)
 			sync.pushUserRolesToUyuni(user)
+			sync.pushUserAccountDataToUyuni(user)
 		}
-	} else {
-		fmt.Println("No users to be updated")
 	}
 
 	deletedUsers := sync.GetDeletedUsers()
@@ -211,6 +208,9 @@ func (sync *LDAPSync) SyncUsers() []*UyuniUser {
 		fmt.Println("No users to be deleted")
 	}
 
+	log.Infof("Added %d new users, updated %d existing users, removed %d users", len(newUsers), len(existingUsers), len(deletedUsers))
+	log.Info("End user synchronisation between LDAP and Uyuni server")
+
 	return failed
 }
 
@@ -218,8 +218,13 @@ func (sync *LDAPSync) SyncUsers() []*UyuniUser {
 func (sync *LDAPSync) deleteUser(uyuniUser *UyuniUser) {
 	_, err := sync.uc.Call("user.delete", sync.uc.Session(), uyuniUser.Uid)
 	if err != nil {
-		fmt.Println(err)
+		log.Errorf("Cannot delete users '%s': %s", uyuniUser.Uid, err.Error())
 	}
+}
+
+// Push account data to Uyuni
+func (sync *LDAPSync) pushUserAccountDataToUyuni(user *UyuniUser) {
+	log.Errorf("Cannot push account data for %s to Uyuni: not implemented yet", user.Uid)
 }
 
 // Sync user roles
@@ -227,17 +232,27 @@ func (sync *LDAPSync) pushUserRolesToUyuni(uyuniUser *UyuniUser) {
 	// Remove current roles away
 	ret, err := sync.uc.Call("user.listRoles", sync.uc.Session(), uyuniUser.Uid)
 	if err != nil {
-		fmt.Println(err)
+		log.Errorf("Cannot list roles for user '%s': %s", uyuniUser.Uid, err.Error())
 		return
 	}
 
 	for _, role := range ret.([]interface{}) {
-		sync.uc.Call("user.removeRole", sync.uc.Session(), uyuniUser.Uid, role.(string))
+		_, err := sync.uc.Call("user.removeRole", sync.uc.Session(), uyuniUser.Uid, role.(string))
+		if err != nil {
+			log.Errorf("Cannot remove role '%s': %s", role, err.Error())
+		} else {
+			log.Debugf("Removed role '%s'", role)
+		}
 	}
 
 	// Add new roles
 	for _, role := range uyuniUser.GetRoles() {
-		sync.uc.Call("user.addRole", sync.uc.Session(), uyuniUser.Uid, role)
+		_, err := sync.uc.Call("user.addRole", sync.uc.Session(), uyuniUser.Uid, role)
+		if err != nil {
+			log.Errorf("Cannot add role '%s': %s", role, err.Error())
+		} else {
+			log.Debugf("Added role '%s'", role)
+		}
 	}
 }
 
