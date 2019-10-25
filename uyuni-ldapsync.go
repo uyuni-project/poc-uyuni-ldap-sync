@@ -5,6 +5,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"os"
+	"strings"
 )
 
 var log = logrus.New()
@@ -36,23 +37,23 @@ func (sa *SyncApp) Finish() {
 
 // Print users
 func PrintUsers(title string, users []*UyuniUser) {
-	fmt.Println(title)
 	if len(users) > 0 {
+		fmt.Printf("%s:\n", title)
 		for idx, user := range users {
 			idx++
 			fmt.Printf("  %d. %s (%s %s) at %s\n", idx, user.Uid, user.Name, user.Secondname, user.Email)
 		}
 		fmt.Println()
 	} else {
-		fmt.Println("  No users found for this criteria")
+		fmt.Printf("No %s has been found for this criteria\n", strings.ToLower(title))
 	}
-	fmt.Println()
 }
 
 // RunSync is a main sync runner
 func RunSync(ctx *cli.Context) {
 	lc := NewSyncApp(ctx)
 	if ctx.Bool("overview") {
+		// TODO: add reporting facility instead of this
 		fmt.Println("Ignored users:")
 		for idx, uid := range lc.GetLDAPSync().cr.Config().Directory.Frozen {
 			idx++
@@ -60,14 +61,11 @@ func RunSync(ctx *cli.Context) {
 		}
 		fmt.Println()
 
-		PrintUsers("New users:", lc.GetLDAPSync().GetNewUsers())
-		PrintUsers("Outdated users:", lc.GetLDAPSync().GetOutdatedUsers())
-		PrintUsers("Removed users:", lc.GetLDAPSync().GetDeletedUsers())
+		PrintUsers("New users", lc.GetLDAPSync().GetNewUsers())
+		PrintUsers("Outdated users", lc.GetLDAPSync().GetOutdatedUsers())
+		PrintUsers("Removed users", lc.GetLDAPSync().GetDeletedUsers())
 	} else if ctx.Bool("sync") {
-		fmt.Println("Synchronising...")
-		for _, user := range lc.GetLDAPSync().SyncUsers() {
-			fmt.Printf("User sync for \"%s\" has been failed: %s\n", user.Uid, user.Err.Error())
-		}
+		lc.GetLDAPSync().SyncUsers()
 	} else {
 		cli.ShowAppHelpAndExit(ctx, 1)
 	}
