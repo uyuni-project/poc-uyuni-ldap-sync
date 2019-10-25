@@ -4,7 +4,7 @@ ldapsync_SOURCES = \
 all: ldapsync
 
 ldapsync: $(ldapsync_SOURCES)
-	go build -x -o uyuni-ldapsync $(ldapsync_SOURCES)
+	go build -x -o mgr-ldapsync $(ldapsync_SOURCES)
 
 clean:
 	go clean -x -i
