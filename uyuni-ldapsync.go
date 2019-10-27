@@ -59,8 +59,9 @@ func (sa *SyncApp) setupLogger(cr *ConfigReader) {
 // Creates new, if not yet initialised.
 func (sa *SyncApp) GetLDAPSync() *LDAPSync {
 	if sa.ldapSync == nil {
-		sa.ldapSync = NewLDAPSync(sa.cliContext.String("config")).Start()
+		sa.ldapSync = NewLDAPSync(sa.cliContext.String("config"))
 		sa.setupLogger(sa.ldapSync.cr)
+		sa.ldapSync.Start()
 	}
 
 	return sa.ldapSync
