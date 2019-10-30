@@ -26,7 +26,6 @@ type LDAPSync struct {
 func NewLDAPSync(cfgpath string) *LDAPSync {
 	sync := new(LDAPSync)
 	sync.cr = NewConfigReader(cfgpath)
-
 	sync.lc = NewLDAPCaller().
 		SetHost(sync.cr.Config().Directory.Host).
 		SetPort(sync.cr.Config().Directory.Port).
