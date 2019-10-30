@@ -374,7 +374,7 @@ func (sync *LDAPSync) refreshExistingUyuniUsers() []*UyuniUser {
 // This allows to substitute remapped fields from the configuration, returning
 // new remapped name, or keep the original one.
 func (sync *LDAPSync) getAttributeNameFor(attr string) string {
-	if fieldmap, ext := sync.cr.Config().Directory.Maps[sync.cr.Config().Directory.Allusers]; ext {
+	if fieldmap, ext := sync.cr.Config().Directory.Attrmap[sync.cr.Config().Directory.Allusers]; ext {
 		nAttr, ext := fieldmap[attr]
 		if ext {
 			attr = nAttr
