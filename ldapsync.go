@@ -26,7 +26,6 @@ type LDAPSync struct {
 func NewLDAPSync(cfgpath string) *LDAPSync {
 	sync := new(LDAPSync)
 	sync.cr = NewConfigReader(cfgpath)
-
 	sync.lc = NewLDAPCaller().
 		SetHost(sync.cr.Config().Directory.Host).
 		SetPort(sync.cr.Config().Directory.Port).
@@ -371,6 +370,20 @@ func (sync *LDAPSync) refreshExistingUyuniUsers() []*UyuniUser {
 	return sync.uyuniusers
 }
 
+// Get an attribute name for DN.
+// This allows to substitute remapped fields from the configuration, returning
+// new remapped name, or keep the original one.
+func (sync *LDAPSync) getAttributeNameFor(attr string) string {
+	if fieldmap, ext := sync.cr.Config().Directory.Maps[sync.cr.Config().Directory.Allusers]; ext {
+		nAttr, ext := fieldmap[attr]
+		if ext {
+			attr = nAttr
+		}
+	}
+
+	return attr
+}
+
 func (sync *LDAPSync) newUserFromDN(dn string) *UyuniUser {
 	user := NewUyuniUser()
 	request := ldap.NewSearchRequest(dn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
@@ -380,15 +393,15 @@ func (sync *LDAPSync) newUserFromDN(dn string) *UyuniUser {
 	if len(entries) == 1 {
 		entry := entries[0]
 		user.Dn = entry.DN
-		user.Uid = entry.GetAttributeValue("uid")
-		user.Email = entry.GetAttributeValue("mail")
+		user.Uid = entry.GetAttributeValue(sync.getAttributeNameFor("uid"))
+		user.Email = entry.GetAttributeValue(sync.getAttributeNameFor("mail"))
 
 		cn := strings.Split(entry.GetAttributeValue("cn"), " ")
 		if len(cn) == 2 {
 			user.Name, user.Secondname = cn[0], cn[1]
 		} else {
-			user.Name = sync.getAttributes(entry, "name", "givenName")
-			user.Secondname = entry.GetAttributeValue("sn")
+			user.Name = sync.getAttributes(entry, sync.getAttributeNameFor("name"), sync.getAttributeNameFor("givenName"))
+			user.Secondname = entry.GetAttributeValue(sync.getAttributeNameFor("sn"))
 		}
 	} else {
 		log.Errorf("DN '%s' matches more or less than one distinct user", dn)

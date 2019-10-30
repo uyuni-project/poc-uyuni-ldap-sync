@@ -23,6 +23,7 @@ type Config struct {
 
 		Groups   map[string][]string
 		Roles    map[string][]string
+		attrmap  map[string]map[string]string
 		Frozen   []string
 		Allusers string
 	}
@@ -40,6 +41,7 @@ func NewConfig() *Config {
 	cfg := new(Config)
 	cfg.Directory.Groups = make(map[string][]string)
 	cfg.Directory.Roles = make(map[string][]string)
+	cfg.Directory.Maps = make(map[string]map[string]string)
 
 	return cfg
 }
