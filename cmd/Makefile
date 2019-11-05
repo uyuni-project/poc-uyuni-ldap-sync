@@ -31,4 +31,7 @@ strip:
 clean:
 	$(GO) clean -x -i
 
+flush-cache:
+	$(GO) clean -cache -modcache -i -r
+
 .PHONY: all install clean
