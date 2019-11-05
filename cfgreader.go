@@ -66,16 +66,16 @@ func NewConfigReader(path string) *ConfigReader {
 func (cfg *ConfigReader) loadFromPath() {
 	fh, err := os.Open(cfg.path)
 	if err != nil {
-		log.Fatal(err)
+		Log.Fatal(err)
 	}
 	defer fh.Close()
 	cfgBytes, err := ioutil.ReadAll(fh)
 	if err != nil {
-		log.Fatal(err)
+		Log.Fatal(err)
 	}
 
 	if err := yaml.Unmarshal(cfgBytes, &cfg.config); err != nil {
-		log.Fatal(err)
+		Log.Fatal(err)
 	} else {
 		cfg.setDefaults()
 	}
@@ -124,24 +124,24 @@ func (cfg *ConfigReader) validate() *ConfigReader {
 		"Uyuni user is not specified":                      cfg.config.Spacewalk.User,
 		"The password for the Uyuni user is not specified": cfg.config.Spacewalk.Password} {
 		if attr == "" {
-			log.Fatal(errmsg)
+			Log.Fatal(errmsg)
 		}
 	}
 
 	// Look if at least one frozen dude has this role
 	if len(cfg.config.Directory.Frozen) == 0 {
-		log.Fatal("You have to regiser at least one frozen account with Organisation Manager role for emergency purposes")
+		Log.Fatal("You have to regiser at least one frozen account with Organisation Manager role for emergency purposes")
 	}
 
 	// Look if at least one frozen dude has this role
 	if len(cfg.config.Directory.Groups) == 0 && len(cfg.config.Directory.Roles) == 0 {
-		log.Fatal("Either Directory/Groups or Directory/Roles needs to be specified")
+		Log.Fatal("Either Directory/Groups or Directory/Roles needs to be specified")
 	}
 
 	for _, aggr := range []map[string][]string{cfg.config.Directory.Groups, cfg.config.Directory.Roles} {
 		err := cfg.validateAggregate(aggr)
 		if err != nil {
-			log.Fatal(err)
+			Log.Fatal(err)
 		}
 	}
 

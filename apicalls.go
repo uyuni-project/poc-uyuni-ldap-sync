@@ -44,11 +44,11 @@ func (c *UyuniCaller) authenticate() {
 	if c.user != "" && c.password != "" {
 		res, err = c.Call("auth.login", c.user, c.password)
 		if err != nil {
-			log.Fatal(err)
+			Log.Fatal(err)
 		}
 		c.session = res.(string)
 	} else {
-		log.Fatalf("User and/or password for Uyuni required!")
+		Log.Fatalf("User and/or password for Uyuni required!")
 	}
 }
 

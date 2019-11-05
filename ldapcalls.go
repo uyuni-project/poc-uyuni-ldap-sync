@@ -53,7 +53,7 @@ func (lc *LDAPCaller) Connect() {
 	if lc.conn == nil {
 		lc.conn, err = ldap.Dial(lc.proto, fmt.Sprintf("%s:%d", lc.host, lc.port))
 		if err != nil {
-			log.Fatal(err)
+			Log.Fatal(err)
 		}
 	}
 }
@@ -68,7 +68,7 @@ func (lc *LDAPCaller) Disconnect() {
 func (lc *LDAPCaller) Search(request *ldap.SearchRequest) *ldap.SearchResult {
 	res, err := lc.conn.Search(request)
 	if err != nil {
-		log.Fatal(err)
+		Log.Fatal(err)
 	}
 	return res
 }
