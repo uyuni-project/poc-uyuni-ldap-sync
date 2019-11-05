@@ -1,4 +1,4 @@
-package main
+package ldapsync
 
 import (
 	"github.com/thoas/go-funk"
