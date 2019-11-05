@@ -55,6 +55,10 @@ func NewLDAPSync(cfgpath string) *LDAPSync {
 	return sync
 }
 
+func (sync *LDAPSync) ConfigReader() *ConfigReader {
+	return sync.cr
+}
+
 func (sync *LDAPSync) Start() *LDAPSync {
 	sync.lc.Connect()
 
