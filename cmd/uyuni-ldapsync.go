@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	ldapsync "github.com/isbm/uyuni-ldap-sync"
 	"github.com/sirupsen/logrus"
 	"github.com/t-tomalak/logrus-easy-formatter"
 	"github.com/urfave/cli"
