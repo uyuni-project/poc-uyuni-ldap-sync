@@ -25,6 +25,8 @@ else
 	@echo "Cannot find gccgo"
 endif
 
+deps:
+	$(GO) get -v ./... 2>/dev/null ||:
 strip:
 	strip $(OUT)
 
