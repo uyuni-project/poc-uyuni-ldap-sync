@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	ldapsync "github.com/isbm/uyuni-ldap-sync"
+	"github.com/isbm/uyuni-ldap-sync"
 	"github.com/sirupsen/logrus"
 	"github.com/t-tomalak/logrus-easy-formatter"
 	"github.com/urfave/cli"
@@ -14,7 +14,7 @@ import (
 var log *logrus.Logger
 
 type SyncApp struct {
-	ldapSync   *LDAPSync
+	ldapSync   *ldapsync.LDAPSync
 	cliContext *cli.Context
 	output     *os.File
 }
@@ -28,9 +28,7 @@ func NewSyncApp(ctx *cli.Context) *SyncApp {
 }
 
 // SetupLogger is used to setup all the preferences for the logging
-func (sa *SyncApp) setupLogger(cr *ConfigReader) {
-	log = logrus.New()
-
+func (sa *SyncApp) setupLogger(cr *ldapsync.ConfigReader) {
 	if !sa.cliContext.Bool("verbose") {
 		fmtr := new(easy.Formatter)
 		fmtr.TimestampFormat = "2006-01-02 15:04:05"
@@ -48,7 +46,7 @@ func (sa *SyncApp) setupLogger(cr *ConfigReader) {
 		fmtr.FullTimestamp = true
 		fmtr.DisableLevelTruncation = true
 		fmtr.DisableColors = false
-		fmtr.ForceQuote = false
+		//fmtr.ForceQuote = false
 		log.SetFormatter(fmtr)
 	}
 
@@ -58,10 +56,10 @@ func (sa *SyncApp) setupLogger(cr *ConfigReader) {
 
 // GetLDAPSync returns a pointer to the LDAPSync object instance.
 // Creates new, if not yet initialised.
-func (sa *SyncApp) GetLDAPSync() *LDAPSync {
+func (sa *SyncApp) GetLDAPSync() *ldapsync.LDAPSync {
 	if sa.ldapSync == nil {
-		sa.ldapSync = NewLDAPSync(sa.cliContext.String("config"))
-		sa.setupLogger(sa.ldapSync.cr)
+		sa.ldapSync = ldapsync.NewLDAPSync(sa.cliContext.String("config"))
+		sa.setupLogger(sa.ldapSync.ConfigReader())
 		sa.ldapSync.Start()
 	}
 
@@ -76,7 +74,7 @@ func (sa *SyncApp) Finish() {
 }
 
 // Print users
-func PrintUsers(title string, users []*UyuniUser) {
+func PrintUsers(title string, users []*ldapsync.UyuniUser) {
 	if len(users) > 0 {
 		fmt.Printf("%s:\n", title)
 		for idx, user := range users {
@@ -95,7 +93,7 @@ func RunSync(ctx *cli.Context) {
 	if ctx.Bool("overview") {
 		// TODO: add reporting facility instead of this
 		fmt.Println("Ignored users:")
-		for idx, uid := range lc.GetLDAPSync().cr.Config().Directory.Frozen {
+		for idx, uid := range lc.GetLDAPSync().ConfigReader().Config().Directory.Frozen {
 			idx++
 			fmt.Printf("  %d. %s\n", idx, uid)
 		}
