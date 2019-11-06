@@ -29,6 +29,7 @@ func NewSyncApp(ctx *cli.Context) *SyncApp {
 
 // SetupLogger is used to setup all the preferences for the logging
 func (sa *SyncApp) setupLogger(cr *ldapsync.ConfigReader) {
+	log = ldapsync.Log
 	if !sa.cliContext.Bool("verbose") {
 		fmtr := new(easy.Formatter)
 		fmtr.TimestampFormat = "2006-01-02 15:04:05"
