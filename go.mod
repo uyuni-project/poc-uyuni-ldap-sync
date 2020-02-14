@@ -11,5 +11,6 @@ require (
 	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816
 	github.com/thoas/go-funk v0.4.0
 	github.com/urfave/cli v1.22.1
+	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20170511165959-379148ca0225 // indirect
 )
