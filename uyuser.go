@@ -63,6 +63,7 @@ func (u *UyuniUser) AddRoles(newRoles ...string) {
 	}
 }
 
+// FlushRoles removes set roles inside the instance
 func (u *UyuniUser) FlushRoles() *UyuniUser {
 	u.roles = nil
 	return u

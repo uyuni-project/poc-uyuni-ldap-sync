@@ -3,9 +3,10 @@ package ldapsync
 import (
 	"errors"
 	"fmt"
-	"github.com/go-yaml/yaml"
 	"io/ioutil"
 	"os"
+
+	"github.com/go-yaml/yaml"
 )
 
 // Config object

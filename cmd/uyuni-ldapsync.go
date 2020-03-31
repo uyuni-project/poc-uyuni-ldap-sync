@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/isbm/uyuni-ldap-sync"
-	"github.com/sirupsen/logrus"
-	"github.com/t-tomalak/logrus-easy-formatter"
-	"github.com/urfave/cli"
 	"os"
 	"strings"
 	"time"
+
+	ldapsync "github.com/isbm/uyuni-ldap-sync"
+	"github.com/sirupsen/logrus"
+	easy "github.com/t-tomalak/logrus-easy-formatter"
+	"github.com/urfave/cli"
 )
 
 var log *logrus.Logger
@@ -74,7 +75,7 @@ func (sa *SyncApp) Finish() {
 	}
 }
 
-// Print users
+// PrintUsers prints users information to the STDOUT
 func PrintUsers(title string, users []*ldapsync.UyuniUser) {
 	if len(users) > 0 {
 		fmt.Printf("%s:\n", title)
@@ -121,7 +122,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "config, c",
-			Value: "/etc/rhn/ldapsync.conf", // TODO: change that
+			Value: "/etc/rhn/ldapsync.conf", // TODO: change that.
 			Usage: "Configuration file",
 		},
 		cli.BoolFlag{

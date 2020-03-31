@@ -2,10 +2,12 @@ package ldapsync
 
 import (
 	"crypto/tls"
-	"github.com/kolo/xmlrpc"
 	"net/http"
+
+	"github.com/kolo/xmlrpc"
 )
 
+// UyuniCaller object
 type UyuniCaller struct {
 	client   *xmlrpc.Client
 	user     string
