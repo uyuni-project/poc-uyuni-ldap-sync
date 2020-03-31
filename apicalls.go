@@ -2,8 +2,9 @@ package ldapsync
 
 import (
 	"crypto/tls"
-	"github.com/kolo/xmlrpc"
 	"net/http"
+
+	"github.com/kolo/xmlrpc"
 )
 
 type UyuniCaller struct {

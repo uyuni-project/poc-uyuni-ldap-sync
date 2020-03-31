@@ -2,10 +2,11 @@ package ldapsync
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/go-ldap/ldap"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"strings"
 )
 
 var Log *logrus.Logger

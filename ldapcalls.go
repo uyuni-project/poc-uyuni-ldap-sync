@@ -2,6 +2,7 @@ package ldapsync
 
 import (
 	"fmt"
+
 	"github.com/go-ldap/ldap"
 )
 
