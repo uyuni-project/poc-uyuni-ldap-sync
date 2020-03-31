@@ -15,12 +15,14 @@ func init() {
 	Log = logrus.New()
 }
 
+// SearchConfig object
 type SearchConfig struct {
 	config    *map[string][]string
 	filter    string
 	attribute string
 }
 
+// LDAPSync object
 type LDAPSync struct {
 	lc           *LDAPCaller
 	uc           *UyuniCaller
@@ -31,6 +33,7 @@ type LDAPSync struct {
 	roleConfigs  [2]*SearchConfig
 }
 
+// NewLDAPSync creates an instance of LDAPSync
 func NewLDAPSync(cfgpath string) *LDAPSync {
 	sync := new(LDAPSync)
 	sync.cr = NewConfigReader(cfgpath)
@@ -56,10 +59,12 @@ func NewLDAPSync(cfgpath string) *LDAPSync {
 	return sync
 }
 
+// ConfigReader returns a ConfigReader instance class
 func (sync *LDAPSync) ConfigReader() *ConfigReader {
 	return sync.cr
 }
 
+// Start LDAP sync process
 func (sync *LDAPSync) Start() *LDAPSync {
 	sync.lc.Connect()
 
@@ -72,6 +77,7 @@ func (sync *LDAPSync) Start() *LDAPSync {
 	return sync
 }
 
+// Finish LDAP sync process.
 func (sync *LDAPSync) Finish() {
 	sync.lc.Disconnect()
 }
@@ -396,6 +402,7 @@ func (sync *LDAPSync) getAttributeNameFor(attr string) string {
 	return attr
 }
 
+// Create a new user from a given DN
 func (sync *LDAPSync) newUserFromDN(dn string) *UyuniUser {
 	user := NewUyuniUser()
 	request := ldap.NewSearchRequest(dn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
@@ -466,6 +473,7 @@ func (sync *LDAPSync) refreshStagedLDAPUsers() []*UyuniUser {
 	return sync.ldapusers
 }
 
+// Merge roles by attributes
 func (sync *LDAPSync) mergeRolesByAttributes(dn string, user *UyuniUser, filter string, attribute string, uyuniRoles []string) {
 	req := ldap.NewSearchRequest(dn, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, filter, []string{}, nil)
 	for _, entry := range sync.lc.Search(req).Entries {

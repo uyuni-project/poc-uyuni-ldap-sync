@@ -7,6 +7,7 @@ import (
 	"github.com/kolo/xmlrpc"
 )
 
+// UyuniCaller object
 type UyuniCaller struct {
 	client   *xmlrpc.Client
 	user     string
