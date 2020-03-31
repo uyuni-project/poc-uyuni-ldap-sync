@@ -22,5 +22,4 @@ Typical build procedure:
 # ToDO
 
 - Add automatic PAM setup
-- Cleanup Makefile
 - Unit tests
