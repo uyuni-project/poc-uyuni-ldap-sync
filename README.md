@@ -1,3 +1,5 @@
+<p><img src="https://img.shields.io/badge/EXPERIMENTAL-WIP-red" /></p>
+
 # LDAP sync for Uyuni
 
 LDAP sync tool is a reimplementation of
