@@ -1,3 +1,7 @@
+# Archived project
+
+If you want to resume work, please contact us at https://lists.opensuse.org/archives/list/devel@lists.uyuni-project.org/ or https://gitter.im/uyuni-project/devel
+
 <p><img src="https://img.shields.io/badge/EXPERIMENTAL-WIP-red" /></p>
 
 # LDAP sync for Uyuni
